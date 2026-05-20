@@ -305,22 +305,22 @@ footer {
 }
 
 /* Modern iOS 17 Settings style layouts */
-#settingsScreen, #shopScreen {
+#settingsScreen {
   background: #f2f2f7 !important; /* iOS Light Gray */
 }
-#settingsScreen header, #shopScreen header {
+#settingsScreen header {
   background: rgba(255, 255, 255, 0.8) !important;
   backdrop-filter: blur(25px) !important;
   -webkit-backdrop-filter: blur(25px) !important;
   border-bottom: 0.5px solid rgba(0,0,0,0.08) !important;
 }
-#settingsScreen > div, #shopScreen > div {
+#settingsScreen > div {
   background: transparent !important;
   padding: 85px 16px 30px !important;
 }
 
 /* iOS 17 Rounded Grouped Table Cell Styles */
-#settingsScreen > div > div, #shopScreen > div > div {
+#settingsScreen > div > div {
   background: #ffffff !important;
   border-radius: 12px !important;
   box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important;
@@ -555,10 +555,10 @@ button#toggleSoundBtn:not(.off)::after, button#toggleMusicBtn:not(.off)::after {
 
 /* --- PREMIUM MISSIONS CONTAINER --- */
 .missions-container {
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-bottom: none;
     transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     z-index: 10;
@@ -571,7 +571,7 @@ button#toggleSoundBtn:not(.off)::after, button#toggleMusicBtn:not(.off)::after {
     height: 110px;
 }
 .missions-container.expanded {
-    height: 168px;
+    height: 335px;
 }
 
 .missions-track {
@@ -585,11 +585,13 @@ button#toggleSoundBtn:not(.off)::after, button#toggleMusicBtn:not(.off)::after {
 .missions-container.collapsed .missions-track {
     overflow: hidden;
     justify-content: center;
+    flex-direction: row;
 }
 .missions-container.expanded .missions-track {
-    overflow-x: auto;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+    align-items: center;
 }
 .missions-container.expanded .missions-track::-webkit-scrollbar {
     display: none;
@@ -608,10 +610,10 @@ button#toggleSoundBtn:not(.off)::after, button#toggleMusicBtn:not(.off)::after {
     justify-content: space-between;
     height: 90px;
     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    width: 92%;
 }
 .missions-container.collapsed .mission-card {
     display: none;
-    width: 92%;
     min-width: unset;
 }
 .missions-container.collapsed .mission-card.active-collapsed {

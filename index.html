@@ -12,23 +12,9 @@
 
 <div class="game-container">
 
-  <!-- iOS OVERLAYS (SHARED) -->
-  <div class="ios-status-bar">
-    <span class="time">9:41</span>
-    <div class="dynamic-island" id="dynamicIsland">
-      <span id="island-text">Omega 5000</span>
-    </div>
-    <div class="status-icons">
-      <span>📶</span>
-      <span>5G</span>
-      <span>🔋 100%</span>
-    </div>
-  </div>
-
   <!-- MAP SCREEN (RESTORED FOREST) -->
   <div id="mapScreen" class="screen map-screen">
-    <header class="hud-top-premium" style="background:rgba(255,255,255,0.75); backdrop-filter:blur(20px); padding: 60px 20px 15px; border-bottom:1px solid rgba(0,0,0,0.05); position:relative; z-index:15;">
-      <div class="hud-item" style="background:rgba(0,122,255,0.1); color:#007aff; padding:8px 15px; border-radius:20px; font-weight:800; font-size:13px;">❤️ 5 <span>FULL</span></div>
+    <header class="hud-top-premium" style="background:rgba(255,255,255,0.75); backdrop-filter:blur(20px); padding: 15px 20px; border-bottom:1px solid rgba(0,0,0,0.05); position:relative; z-index:15;">
       <div class="hud-item" style="background:rgba(255,179,0,0.1); color:#ff9500; padding:8px 15px; border-radius:20px; font-weight:800; font-size:13px;">🪙 <span id="map-coins">1250</span></div>
       <button class="hud-btn-p" style="width:40px; height:40px; border-radius:12px; background:rgba(0,0,0,0.05); border:none; display:flex; justify-content:center; align-items:center; font-size:18px;" onclick="showScreen('settingsScreen')">⚙️</button>
     </header>
@@ -49,7 +35,7 @@
     <!-- ✅ Left Side Floating Buttons: Store + Daily Login + Daily Bonus -->
     <div id="leftSideBtns" style="position:absolute; left:12px; top:235px; z-index:20; display:flex; flex-direction:column; gap:12px; align-items:center;">
       <!-- Store Button -->
-      <button onclick="openStoreModal()" style="background:none; border:none; padding:0; cursor:pointer; filter:drop-shadow(0 4px 12px rgba(0,0,0,0.35)); transition:transform 0.15s; outline:none;">
+      <button onclick="showScreen('shopScreen')" style="background:none; border:none; padding:0; cursor:pointer; filter:drop-shadow(0 4px 12px rgba(0,0,0,0.35)); transition:transform 0.15s; outline:none;">
         <img src="Assets/store_icon.png" alt="Store" style="width:62px; height:62px; border-radius:15px; display:block;" />
         <div style="color:#fff; font-size:10px; font-weight:900; text-align:center; text-shadow:0 2px 4px rgba(0,0,0,0.8); margin-top:2px; letter-spacing:0.5px;">STORE</div>
       </button>
@@ -240,38 +226,71 @@
   </div>
 
   <!-- SHOP SCREEN -->
-  <div id="shopScreen" class="screen hidden" style="background:#f4f7ff; width:100%; height:100%;">
-    <header class="hud-top-premium" style="background:#fff; padding: 50px 20px 15px; border-bottom:1px solid #eee;">
-      <h2 style="color:#5b4dff; margin:0; font-size:24px;">Shop</h2>
-      <div class="hud-item" style="background:#eef2ff; padding:8px 15px; border-radius:20px; font-weight:800; color:#ffb300;">🪙 <span id="shop-coins">1250</span></div>
+  <div id="shopScreen" class="screen hidden" style="background:linear-gradient(160deg,#1a0a3a,#2d1060); width:100%; height:100%; display:flex; flex-direction:column; overflow:hidden;">
+    <header class="hud-top-premium" style="background:linear-gradient(90deg,#7b2ff7,#e040fb); padding: 25px 20px 14px 20px; display:flex; align-items:center; justify-content:space-between; border-bottom: 1.5px solid rgba(255, 255, 255, 0.15); box-shadow: 0 4px 20px rgba(0,0,0,0.3); z-index:15;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <button onclick="showScreen('mapScreen')" style="background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.25); color:#fff; width:38px; height:38px; border-radius:50%; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(5px); box-shadow:0 4px 10px rgba(0,0,0,0.2); transition:transform 0.1s; outline:none;">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+        </button>
+        <span style="color:#fff; font-size:22px; font-weight:900; letter-spacing:0.5px;">STORE</span>
+      </div>
+      <div class="hud-item" style="background:rgba(255,215,0,0.15); border: 1px solid rgba(255,215,0,0.3); padding:8px 15px; border-radius:20px; font-weight:800; color:#ffd700; display:flex; align-items:center; gap:6px; box-shadow:0 0 10px rgba(255,215,0,0.1); font-size:14px;">
+        🪙 <span id="shop-coins">0</span>
+      </div>
     </header>
-    <div style="padding:20px; display:flex; flex-direction:column; gap:15px; overflow-y:auto; height:calc(100% - 180px);">
-      <div style="background:#fff; border-radius:20px; padding:20px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 10px 30px rgba(0,0,0,0.05);">
-        <div style="display:flex; align-items:center; gap:15px;">
-          <span style="font-size:36px;">💣</span>
-          <div><h3 style="margin:0; color:#333;">Bomb</h3><p style="margin:0; color:#888; font-size:12px;">Destroys area</p></div>
+
+    <div class="shop-grid-container" style="flex:1; overflow-y:auto; padding:20px 16px; display:grid; grid-template-columns:1fr 1fr; gap:14px; content-visibility:auto;">
+      <!-- Bomb -->
+      <div style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,100,100,0.4); border-radius:18px; padding:18px 14px; text-align:center; cursor:pointer; display:flex; flex-direction:column; justify-content:space-between; align-items:center; transition: transform 0.15s; box-shadow:0 4px 15px rgba(0,0,0,0.2);" onclick="buyItem('bomb',200)">
+        <div>
+          <div style="font-size:42px; margin-bottom:8px; filter:drop-shadow(0 4px 8px rgba(0,0,0,0.3));">💣</div>
+          <div style="color:#fff; font-weight:800; font-size:15px; letter-spacing:0.3px;">Bomb</div>
+          <div style="color:#aaa; font-size:11px; margin:4px 0 12px; line-height:1.3; min-height:30px;">Destroy nearby bubbles</div>
         </div>
-        <button style="background:#ffb300; border:none; padding:10px 20px; border-radius:15px; color:#fff; font-weight:800; font-size:16px;" onclick="buyItem('bomb', 500)">500 🪙</button>
+        <div style="background:linear-gradient(90deg,#ff6b35,#f7931e); color:#fff; border-radius:20px; padding:8px 18px; font-weight:900; font-size:13px; display:inline-block; box-shadow:0 4px 10px rgba(247,147,30,0.3); border:none; width:80%;">🪙 200</div>
       </div>
-      <div style="background:#fff; border-radius:20px; padding:20px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 10px 30px rgba(0,0,0,0.05);">
-        <div style="display:flex; align-items:center; gap:15px;">
-          <span style="font-size:36px;">🎯</span>
-          <div><h3 style="margin:0; color:#333;">Super Aim</h3><p style="margin:0; color:#888; font-size:12px;">Longer trajectory</p></div>
+      <!-- Aim -->
+      <div style="background:rgba(255,255,255,0.08); border:1px solid rgba(100,255,100,0.4); border-radius:18px; padding:18px 14px; text-align:center; cursor:pointer; display:flex; flex-direction:column; justify-content:space-between; align-items:center; transition: transform 0.15s; box-shadow:0 4px 15px rgba(0,0,0,0.2);" onclick="buyItem('aim',150)">
+        <div>
+          <div style="font-size:42px; margin-bottom:8px; filter:drop-shadow(0 4px 8px rgba(0,0,0,0.3));">🎯</div>
+          <div style="color:#fff; font-weight:800; font-size:15px; letter-spacing:0.3px;">Super Aim</div>
+          <div style="color:#aaa; font-size:11px; margin:4px 0 12px; line-height:1.3; min-height:30px;">Extended aiming line</div>
         </div>
-        <button style="background:#ffb300; border:none; padding:10px 20px; border-radius:15px; color:#fff; font-weight:800; font-size:16px;" onclick="buyItem('aim', 300)">300 🪙</button>
+        <div style="background:linear-gradient(90deg,#11998e,#38ef7d); color:#fff; border-radius:20px; padding:8px 18px; font-weight:900; font-size:13px; display:inline-block; box-shadow:0 4px 10px rgba(56,239,125,0.3); border:none; width:80%;">🪙 150</div>
       </div>
-      <div style="background:#fff; border-radius:20px; padding:20px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 10px 30px rgba(0,0,0,0.05);">
-        <div style="display:flex; align-items:center; gap:15px;">
-          <span style="font-size:36px;">☄️</span>
-          <div><h3 style="margin:0; color:#333;">Fireball</h3><p style="margin:0; color:#888; font-size:12px;">Burns everything</p></div>
+      <!-- Fireball -->
+      <div style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,180,50,0.4); border-radius:18px; padding:18px 14px; text-align:center; cursor:pointer; display:flex; flex-direction:column; justify-content:space-between; align-items:center; transition: transform 0.15s; box-shadow:0 4px 15px rgba(0,0,0,0.2);" onclick="buyItem('fireball',300)">
+        <div>
+          <div style="font-size:42px; margin-bottom:8px; filter:drop-shadow(0 4px 8px rgba(0,0,0,0.3));">🔥</div>
+          <div style="color:#fff; font-weight:800; font-size:15px; letter-spacing:0.3px;">Fireball</div>
+          <div style="color:#aaa; font-size:11px; margin:4px 0 12px; line-height:1.3; min-height:30px;">Clears entire column</div>
         </div>
-        <button style="background:#ffb300; border:none; padding:10px 20px; border-radius:15px; color:#fff; font-weight:800; font-size:16px;" onclick="buyItem('fireball', 800)">800 🪙</button>
+        <div style="background:linear-gradient(90deg,#f7971e,#ffd200); color:#1a0a3a; border-radius:20px; padding:8px 18px; font-weight:900; font-size:13px; display:inline-block; box-shadow:0 4px 10px rgba(255,210,0,0.3); border:none; width:80%;">🪙 300</div>
+      </div>
+      <!-- Coin Pack -->
+      <div style="background:linear-gradient(135deg,rgba(255,215,0,0.15),rgba(255,140,0,0.1)); border:1px solid rgba(255,215,0,0.5); border-radius:18px; padding:18px 14px; text-align:center; cursor:pointer; display:flex; flex-direction:column; justify-content:space-between; align-items:center; transition: transform 0.15s; box-shadow:0 4px 15px rgba(0,0,0,0.2);" onclick="buyCoins()">
+        <div>
+          <div style="font-size:42px; margin-bottom:8px; filter:drop-shadow(0 4px 8px rgba(0,0,0,0.3));">🪙</div>
+          <div style="color:#ffd700; font-weight:900; font-size:15px; letter-spacing:0.3px;">+1000 Coins</div>
+          <div style="color:#aaa; font-size:11px; margin:4px 0 12px; line-height:1.3; min-height:30px;">Watch an ad</div>
+        </div>
+        <div style="background:linear-gradient(90deg,#ffd700,#ff9500); color:#1a0a3a; border-radius:20px; padding:8px 18px; font-weight:900; font-size:13px; display:inline-block; box-shadow:0 4px 10px rgba(255,149,0,0.3); border:none; width:80%;">FREE 📺</div>
       </div>
     </div>
-    <footer style="position:absolute; bottom:0; width:100%; height:90px; background:#fff; display:flex; justify-content:space-around; align-items:center; border-top:1px solid #eee;">
-      <div onclick="showScreen('mapScreen')" style="text-align:center; color:#aaa; font-size:10px; font-weight:800; cursor:pointer;"><i>🏠</i><br>HOME</div>
-      <div onclick="showScreen('mapScreen')" style="text-align:center; color:#aaa; font-size:10px; font-weight:800; cursor:pointer;"><i>🗺️</i><br>MAP</div>
-      <div style="text-align:center; color:#7b6cff; font-size:10px; font-weight:800;"><i>🛒</i><br>SHOP</div>
+
+    <footer style="height:90px; background:rgba(26,10,58,0.85); backdrop-filter:blur(15px); -webkit-backdrop-filter:blur(15px); display:flex; justify-content:space-around; align-items:center; border-top:1px solid rgba(255,255,255,0.08); z-index:10;">
+      <div onclick="showScreen('mapScreen')" style="text-align:center; color:#aaa; font-size:10px; font-weight:800; cursor:pointer; transition:color 0.2s;">
+        <span style="font-size:20px; display:block; margin-bottom:2px;">🏠</span>HOME
+      </div>
+      <div onclick="showScreen('mapScreen')" style="text-align:center; color:#aaa; font-size:10px; font-weight:800; cursor:pointer; transition:color 0.2s;">
+        <span style="font-size:20px; display:block; margin-bottom:2px;">🗺️</span>MAP
+      </div>
+      <div style="text-align:center; color:#e040fb; font-size:10px; font-weight:800; filter:drop-shadow(0 0 8px rgba(224,64,251,0.5));">
+        <span style="font-size:20px; display:block; margin-bottom:2px;">🛒</span>SHOP
+      </div>
     </footer>
   </div>
 
