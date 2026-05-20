@@ -6,7 +6,8 @@
 
 let canvas, ctx, scoreVal, currentBallEl, nextBallEl, goalText;
 const R = 18, rowHeight = 32, SPEED = 32;
-const CEILING_Y = 0;
+// CEILING_Y is set dynamically in startGame() based on actual HUD height
+window.CEILING_Y = 0;
 
 
 const COLORS = ['#ff4d4d', '#3399ff', '#33cc33', '#ffcc00', '#cc33ff', '#00f2fe'];
@@ -508,6 +509,16 @@ function startGame() {
     canvas.width = canvas.clientWidth || window.innerWidth;
     canvas.height = canvas.clientHeight || window.innerHeight;
     
+    // 🔑 Dynamically measure HUD height — first bubble row sticks to this boundary
+    const hudEl = document.querySelector('#gameplayScreen .hud-top-premium');
+    if (hudEl) {
+        const cRect = canvas.getBoundingClientRect();
+        const hudRect = hudEl.getBoundingClientRect();
+        window.CEILING_Y = Math.max(0, hudRect.bottom - cRect.top);
+    } else {
+        window.CEILING_Y = 0;
+    }
+    
     // Bind pointerdown for unified mouse/touch handling on canvas
     canvas.onpointerdown = (e) => {
         shoot(e);
@@ -573,7 +584,7 @@ function startGame() {
         rowData.forEach((cell, col) => {
             if (!cell) return; // null = gap
             const x = startX + col * spacingX + (spacingX / 2);
-            const targetY = row * spacingY + (spacingX / 2) + CEILING_Y; // stuck to top wall
+            const targetY = row * spacingY + (spacingX / 2) + window.CEILING_Y; // stuck to HUD bottom
             bubbles.push({
                 x, targetY,
                 y: canvas.height + 100,
@@ -670,7 +681,7 @@ function snap() {
     let bestDist = Infinity;
     let bestCell = null;
 
-    const TOP_HUD_OFFSET = CEILING_Y;
+    const TOP_HUD_OFFSET = window.CEILING_Y || 0;
     const estRow = Math.round((projectile.y - clusterOffset - TOP_HUD_OFFSET - (spacingX / 2)) / spacingY);
     
     for (let r = Math.max(0, estRow - 2); r <= estRow + 2; r++) {
@@ -1177,8 +1188,8 @@ function updateClusterPosition() {
     const activeBubbles = bubbles.filter(b => b.alive && !b.falling);
     if (activeBubbles.length === 0) return;
     // Pin cluster to the top — never scroll down regardless of how few balls are left
-    const topPadding = 0; // pixels from canvas top
-    clusterOffset = topPadding;
+    // clusterOffset = 0: bubbles are anchored at window.CEILING_Y directly
+    clusterOffset = 0;
 }
 
 
@@ -1228,7 +1239,7 @@ function animate() {
                 stepVx *= -1; // Reflect current step
             }
             
-            if (projectile.y < curR + clusterOffset + CEILING_Y) hit = true; 
+            if (projectile.y < curR + clusterOffset + (window.CEILING_Y || 0)) hit = true; 
             else {
                 for (let b of bubbles) {
                     if (b.alive && !b.falling && Math.hypot(b.x - projectile.x, (b.targetY + clusterOffset) - projectile.y) < curR * 1.8) {
@@ -1273,7 +1284,7 @@ function animate() {
                 }
 
                 // Check ceiling
-                if (ty < curR + clusterOffset + CEILING_Y) {
+                if (ty < curR + clusterOffset + (window.CEILING_Y || 0)) {
                     hit = true;
                     break;
                 }
@@ -1312,7 +1323,7 @@ function animate() {
             const numCols = window.numCols || 10;
             const spacingX = canvas.width / numCols;
             const spacingY = spacingX * 0.866;
-            const estRow = Math.round((ty - clusterOffset - CEILING_Y - (spacingX / 2)) / spacingY);
+            const estRow = Math.round((ty - clusterOffset - (window.CEILING_Y || 0) - (spacingX / 2)) / spacingY);
             
             for (let r = Math.max(0, estRow - 2); r <= estRow + 2; r++) {
                 const isOffset = r % 2 !== 0;
@@ -1321,7 +1332,7 @@ function animate() {
                 
                 for (let c = 0; c < rowWidth; c++) {
                     const nx = startX + c * spacingX + (spacingX / 2);
-                    const ny = r * spacingY + (spacingX / 2) + CEILING_Y;
+                    const ny = r * spacingY + (spacingX / 2) + (window.CEILING_Y || 0);
                     const absoluteNy = ny + clusterOffset;
                     
                     let occupied = false;
