@@ -254,7 +254,13 @@ let S = {
     playerFails: 0,          // Tracks consecutive fails for Adaptive Easy Mode
     objective: { count: 0, total: 6 },
     settings: JSON.parse(localStorage.getItem('bs_settings')) || { sound: true, music: true },
-    dailyLogin: JSON.parse(localStorage.getItem('bs_daily_login')) || { lastClaimedDate: null, currentDay: 0, claimedDays: [] }
+    dailyLogin: JSON.parse(localStorage.getItem('bs_daily_login')) || { lastClaimedDate: null, currentDay: 0, claimedDays: [] },
+    missions: JSON.parse(localStorage.getItem('bs_missions')) || {
+        easy: { progress: 0, target: 150, claimed: false },
+        medium: { progress: 0, target: 3, claimed: false },
+        hard: { progress: 0, target: 10000, claimed: false }
+    },
+    dailyBonus: JSON.parse(localStorage.getItem('bs_daily_bonus')) || { lastSpinTime: 0 }
 };
 
 let bubbles = [], projectile = null, particles = [], floaters = [];
@@ -271,7 +277,10 @@ function showScreen(id) {
     const target = document.getElementById(id);
     if (target) target.classList.remove('hidden');
     isGameActive = (id === 'gameplayScreen');
-    if (id === 'mapScreen') renderMap();
+    if (id === 'mapScreen') {
+        renderMap();
+        if (window.renderMissions) window.renderMissions();
+    }
     updateUI();
 }
 
@@ -792,6 +801,15 @@ function snap() {
                 S.score += 100;
             }
         });
+        // 🎯 Easy Mission: count popped bubbles
+        const numPopped = poppedPositions.length;
+        if (numPopped > 0 && S.missions && !S.missions.easy.claimed) {
+            S.missions.easy.progress = Math.min(S.missions.easy.target, S.missions.easy.progress + numPopped);
+        }
+        // 💎 Hard Mission: track score accumulation
+        if (S.missions && !S.missions.hard.claimed) {
+            S.missions.hard.progress = Math.min(S.missions.hard.target, (S.missions.hard.progress || 0) + numPopped * 100);
+        }
         shakeFrames = 15;
         if (window.screenShake) screenShake();
         if (window.increaseCombo) increaseCombo();
@@ -869,6 +887,10 @@ function checkEnd() {
         
         S.levelStars[S.currentLevel] = Math.max(newStars, S.levelStars[S.currentLevel] || 0);
         S.playerFails = 0;
+        // 🏆 Medium Mission: track level wins
+        if (S.missions && !S.missions.medium.claimed) {
+            S.missions.medium.progress = Math.min(S.missions.medium.target, S.missions.medium.progress + 1);
+        }
         saveState();
 
         // Use premium modal if available, else fallback
@@ -1391,6 +1413,12 @@ function saveState() {
     localStorage.setItem('bs_powerups', JSON.stringify(S.powerups || {}));
     localStorage.setItem('bs_settings', JSON.stringify(S.settings || {}));
     localStorage.setItem('bs_daily_login', JSON.stringify(S.dailyLogin || { lastClaimedDate: null, currentDay: 0, claimedDays: [] }));
+    localStorage.setItem('bs_missions', JSON.stringify(S.missions || {
+        easy: { progress: 0, target: 150, claimed: false },
+        medium: { progress: 0, target: 3, claimed: false },
+        hard: { progress: 0, target: 10000, claimed: false }
+    }));
+    localStorage.setItem('bs_daily_bonus', JSON.stringify(S.dailyBonus || { lastSpinTime: 0 }));
 }
 function loadState() { 
     const l = localStorage.getItem('bs_level'); 
@@ -1414,6 +1442,18 @@ function loadState() {
     const dl = localStorage.getItem('bs_daily_login');
     if(dl) S.dailyLogin = JSON.parse(dl);
     else S.dailyLogin = { lastClaimedDate: null, currentDay: 0, claimedDays: [] };
+
+    const ms = localStorage.getItem('bs_missions');
+    if(ms) S.missions = JSON.parse(ms);
+    else S.missions = {
+        easy: { progress: 0, target: 150, claimed: false },
+        medium: { progress: 0, target: 3, claimed: false },
+        hard: { progress: 0, target: 10000, claimed: false }
+    };
+
+    const db = localStorage.getItem('bs_daily_bonus');
+    if(db) S.dailyBonus = JSON.parse(db);
+    else S.dailyBonus = { lastSpinTime: 0 };
 }
 
 // ──────── SHOP & POWERUPS ────────
@@ -1537,7 +1577,7 @@ window.closeDailyLoginModal = function() {
     if (modal) modal.style.display = 'none';
 };
 
-window.renderDailyGrid = function() {
+window.renderDailyGrid = function() { // PREMIUM 2-ROW
     const grid = document.getElementById('dailyGrid');
     if (!grid) return;
     grid.innerHTML = '';
@@ -1676,6 +1716,205 @@ window.claimDailyReward = function() {
     } else {
         alert(`Congratulations! You claimed ${reward.name}! 🎉`);
     }
+};
+
+// ──────── MISSIONS LOGIC ────────
+window.toggleMissions = function() {
+    const container = document.getElementById('missionsContainer');
+    if (!container) return;
+    if (container.classList.contains('collapsed')) {
+        container.classList.remove('collapsed');
+        container.classList.add('expanded');
+    } else {
+        container.classList.remove('expanded');
+        container.classList.add('collapsed');
+    }
+};
+
+window.renderMissions = function() {
+    const track = document.getElementById('missionsTrack');
+    if (!track) return;
+    if (!S.missions) S.missions = {
+        easy: { progress: 0, target: 150, claimed: false },
+        medium: { progress: 0, target: 3, claimed: false },
+        hard: { progress: 0, target: 10000, claimed: false }
+    };
+    const defs = [
+        { key: 'easy',   badge: 'EASY',   color: '#4caf50', icon: '🫧', title: 'Pop 150 Bubbles',     reward: '+200 🪙' },
+        { key: 'medium', badge: 'MEDIUM', color: '#ff9800', icon: '🏆', title: 'Win 3 Levels',         reward: '+1 💣' },
+        { key: 'hard',   badge: 'HARD',   color: '#f44336', icon: '⚡', title: 'Earn 10,000 Points',  reward: '+1 🎯' }
+    ];
+    track.innerHTML = '';
+    let activeSet = false;
+    defs.forEach((d, i) => {
+        const m = S.missions[d.key];
+        const pct = Math.min(100, Math.round((m.progress / m.target) * 100));
+        const done = m.progress >= m.target;
+        const isActive = !activeSet && !m.claimed;
+        if (isActive) activeSet = true;
+        const card = document.createElement('div');
+        card.className = 'mission-card' + (isActive ? ' active-collapsed' : '');
+        card.innerHTML = `
+            <div class="mission-header">
+                <span class="mission-badge ${d.key}">${d.badge}</span>
+                <span class="mission-reward">${d.reward}</span>
+            </div>
+            <div class="mission-title">${d.icon} ${d.title}</div>
+            <div class="mission-progress-bar"><div class="mission-progress-fill" style="width:${pct}%"></div></div>
+            <div class="mission-footer">
+                <span class="mission-status">${m.claimed ? '✓ DONE' : m.progress + ' / ' + m.target}</span>
+                <button class="mission-claim-btn${done && !m.claimed ? ' claimable' : m.claimed ? ' claimed' : ''}" onclick="claimMissionReward('${d.key}')">${m.claimed ? 'CLAIMED' : done ? 'CLAIM!' : 'IN PROGRESS'}</button>
+            </div>
+        `;
+        track.appendChild(card);
+    });
+};
+
+window.claimMissionReward = function(key) {
+    if (!S.missions || !S.missions[key]) return;
+    const m = S.missions[key];
+    if (m.claimed || m.progress < m.target) return;
+    if (key === 'easy') {
+        S.coins += 200;
+        if(window.showPoints) showPoints(window.innerWidth/2, window.innerHeight/2, '+200 Coins! 🪙');
+    } else if (key === 'medium') {
+        S.powerups = S.powerups || {};
+        S.powerups.bomb = (S.powerups.bomb || 0) + 1;
+        if(window.showPoints) showPoints(window.innerWidth/2, window.innerHeight/2, '+1 Bomb! 💣');
+    } else if (key === 'hard') {
+        S.powerups = S.powerups || {};
+        S.powerups.aim = (S.powerups.aim || 0) + 1;
+        if(window.showPoints) showPoints(window.innerWidth/2, window.innerHeight/2, '+1 Super Aim! 🎯');
+    }
+    m.claimed = true;
+    // Reset progress for next cycle
+    m.progress = 0;
+    m.claimed = false;
+    // Actually mark claimed for current
+    S.missions[key].claimed = true;
+    S.missions[key].progress = 0;
+    saveState();
+    updateUI();
+    window.renderMissions();
+};
+
+// ──────── DAILY BONUS (SPIN WHEEL) LOGIC ────────
+const SPIN_REWARDS = [
+    { label: '100 Coins',  type: 'coins',    value: 100 },
+    { label: 'Super Aim',  type: 'aim',      value: 1   },
+    { label: '250 Coins',  type: 'coins',    value: 250 },
+    { label: 'Bomb',       type: 'bomb',     value: 1   },
+    { label: '500 Coins',  type: 'coins',    value: 500 },
+    { label: 'Fireball',   type: 'fireball', value: 1   },
+    { label: '1000 Coins', type: 'coins',    value: 1000 },
+    { label: 'Mega Chest', type: 'chest',    value: { coins:300, bomb:1, aim:1, fireball:1 } }
+];
+
+let _wheelSpinning = false;
+let _wheelCurrentDeg = 0;
+let _spinCooldownTimer = null;
+
+function _updateSpinCooldown() {
+    const el = document.getElementById('spinCooldownText');
+    if (!el) return;
+    const now = Date.now();
+    const last = (S.dailyBonus && S.dailyBonus.lastSpinTime) || 0;
+    const cooldown = 24 * 60 * 60 * 1000; // 24 hours
+    const diff = cooldown - (now - last);
+    if (diff <= 0 || last === 0) {
+        el.style.color = '#00ff88';
+        el.innerText = '🎡 SPIN IS AVAILABLE!';
+        const btn = document.querySelector('.wheel-center-glow');
+        if(btn) { btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; }
+    } else {
+        const h = Math.floor(diff / 3600000);
+        const m = Math.floor((diff % 3600000) / 60000);
+        const s = Math.floor((diff % 60000) / 1000);
+        el.style.color = '#ff9500';
+        el.innerText = `⏳ Next spin in: ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        const btn = document.querySelector('.wheel-center-glow');
+        if(btn) { btn.style.opacity = '0.45'; btn.style.pointerEvents = 'none'; }
+    }
+}
+
+window.openDailyBonusModal = function() {
+    const modal = document.getElementById('dailyBonusModal');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    _updateSpinCooldown();
+    clearInterval(_spinCooldownTimer);
+    _spinCooldownTimer = setInterval(_updateSpinCooldown, 1000);
+};
+
+window.closeDailyBonusModal = function() {
+    const modal = document.getElementById('dailyBonusModal');
+    if (modal) modal.style.display = 'none';
+    clearInterval(_spinCooldownTimer);
+};
+
+window.spinWheel = function() {
+    if (_wheelSpinning) return;
+    const now = Date.now();
+    const last = (S.dailyBonus && S.dailyBonus.lastSpinTime) || 0;
+    if (last !== 0 && (now - last) < 24 * 60 * 60 * 1000) {
+        _updateSpinCooldown();
+        return;
+    }
+    _wheelSpinning = true;
+    const plate = document.getElementById('wheelPlate');
+    if (!plate) { _wheelSpinning = false; return; }
+
+    // Pick a random sector (0-7)
+    const winIndex = Math.floor(Math.random() * SPIN_REWARDS.length);
+    // Each sector is 45 degrees. Center of sector i is at 22.5 + i*45 degrees.
+    // To land sector i under the 12 o'clock pointer: rotate so that
+    // the pointer (at 0deg / top) aligns with the sector center.
+    const sectorCenter = 22.5 + winIndex * 45;
+    // We spin multiple full rotations + the offset to land correctly
+    const extraSpins = 1800; // 5 full rotations
+    const targetAngle = extraSpins + (360 - sectorCenter);
+    _wheelCurrentDeg = targetAngle;
+
+    plate.style.transition = 'transform 4s cubic-bezier(0.1, 0.8, 0.3, 1)';
+    plate.style.transform = `rotate(${_wheelCurrentDeg}deg)`;
+
+    plate.addEventListener('transitionend', function onDone() {
+        plate.removeEventListener('transitionend', onDone);
+        _wheelSpinning = false;
+        // Normalize angle to prevent overflow on next spin
+        _wheelCurrentDeg = _wheelCurrentDeg % 360;
+        plate.style.transition = 'none';
+        plate.style.transform = `rotate(${_wheelCurrentDeg}deg)`;
+
+        // Award the reward
+        const reward = SPIN_REWARDS[winIndex];
+        S.powerups = S.powerups || {};
+        if (reward.type === 'coins') {
+            S.coins += reward.value;
+        } else if (reward.type === 'aim') {
+            S.powerups.aim = (S.powerups.aim || 0) + reward.value;
+        } else if (reward.type === 'bomb') {
+            S.powerups.bomb = (S.powerups.bomb || 0) + reward.value;
+        } else if (reward.type === 'fireball') {
+            S.powerups.fireball = (S.powerups.fireball || 0) + reward.value;
+        } else if (reward.type === 'chest') {
+            S.coins += reward.value.coins;
+            S.powerups.bomb = (S.powerups.bomb || 0) + reward.value.bomb;
+            S.powerups.aim = (S.powerups.aim || 0) + reward.value.aim;
+            S.powerups.fireball = (S.powerups.fireball || 0) + reward.value.fireball;
+        }
+
+        S.dailyBonus = S.dailyBonus || {};
+        S.dailyBonus.lastSpinTime = Date.now();
+        saveState();
+        updateUI();
+        _updateSpinCooldown();
+
+        // Show reward popup
+        setTimeout(() => {
+            alert(`🎉 You won: ${reward.label}!`);
+        }, 200);
+    }, { once: true });
 };
 
 document.addEventListener('DOMContentLoaded', init);

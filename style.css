@@ -553,3 +553,295 @@ button#toggleSoundBtn:not(.off)::after, button#toggleMusicBtn:not(.off)::after {
     --flame-glow: rgba(255, 59, 48, 0.85);
 }
 
+/* --- PREMIUM MISSIONS CONTAINER --- */
+.missions-container {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    z-index: 10;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.missions-container.collapsed {
+    height: 110px;
+}
+.missions-container.expanded {
+    height: 168px;
+}
+
+.missions-track {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    padding: 10px 15px;
+    box-sizing: border-box;
+    transition: all 0.3s ease;
+}
+.missions-container.collapsed .missions-track {
+    overflow: hidden;
+    justify-content: center;
+}
+.missions-container.expanded .missions-track {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+}
+.missions-container.expanded .missions-track::-webkit-scrollbar {
+    display: none;
+}
+
+.mission-card {
+    background: linear-gradient(135deg, #2a1b54, #1c103a);
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 10px 14px;
+    min-width: 250px;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 90px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+.missions-container.collapsed .mission-card {
+    display: none;
+    width: 92%;
+    min-width: unset;
+}
+.missions-container.collapsed .mission-card.active-collapsed {
+    display: flex;
+    animation: fadeIn 0.3s ease;
+}
+
+.mission-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.mission-badge {
+    font-size: 8px;
+    font-weight: 900;
+    padding: 3px 8px;
+    border-radius: 8px;
+    color: #fff;
+    letter-spacing: 0.5px;
+}
+.mission-badge.easy { background: #4caf50; }
+.mission-badge.medium { background: #ff9800; }
+.mission-badge.hard { background: #f44336; }
+.mission-reward {
+    font-size: 10px;
+    font-weight: 900;
+    color: #ffd700;
+}
+.mission-title {
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    margin: 4px 0;
+}
+.mission-progress-bar {
+    width: 100%;
+    height: 6px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 3px;
+    overflow: hidden;
+    margin: 4px 0;
+}
+.mission-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #a64bff, #ffd700);
+    border-radius: 3px;
+    width: 0%;
+    transition: width 0.4s ease;
+}
+.mission-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2px;
+}
+.mission-status {
+    color: rgba(255,255,255,0.6);
+    font-size: 9px;
+    font-weight: 800;
+}
+.mission-claim-btn {
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-size: 9px;
+    font-weight: 900;
+    padding: 4px 10px;
+    cursor: pointer;
+    background: #555;
+    opacity: 0.5;
+    pointer-events: none;
+    transition: all 0.2s;
+}
+.mission-claim-btn.claimable {
+    background: linear-gradient(90deg, #4caf50, #8bc34a);
+    box-shadow: 0 0 10px rgba(76,175,80,0.5);
+    opacity: 1;
+    pointer-events: auto;
+}
+.mission-claim-btn.claimed {
+    background: #4caf50;
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.toggle-missions-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 10px 6px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    outline: none;
+}
+.toggle-missions-btn svg {
+    transition: transform 0.3s ease;
+}
+.missions-container.expanded .toggle-missions-btn svg {
+    transform: rotate(180deg);
+}
+
+/* --- PREMIUM LUCKY SPIN WHEEL --- */
+.wheel-container {
+    position: relative;
+    width: 270px;
+    height: 270px;
+    margin: 20px auto 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.wheel-plate {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 8px solid #ffd700;
+    box-sizing: border-box;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 35px rgba(255, 215, 0, 0.6), inset 0 0 20px rgba(0,0,0,0.8);
+    background: radial-gradient(circle, #2d1060 20%, #13032d 100%);
+    transition: transform 4s cubic-bezier(0.1, 0.8, 0.3, 1);
+}
+.wheel-pointer {
+    position: absolute;
+    top: -12px;
+    z-index: 10;
+    width: 32px;
+    height: 38px;
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4));
+}
+.wheel-sector {
+    position: absolute;
+    width: 50%;
+    height: 50%;
+    left: 50%;
+    top: 50%;
+    transform-origin: 0% 0%;
+    box-sizing: border-box;
+    border-right: 1.5px solid rgba(255,255,255,0.15);
+}
+.wheel-label {
+    position: absolute;
+    left: 50%;
+    top: 15px;
+    transform: translateX(-50%);
+    text-align: center;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 900;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.9);
+    pointer-events: none;
+}
+.wheel-label div {
+    font-size: 20px;
+    margin-top: 2px;
+}
+.wheel-center-glow {
+    position: absolute;
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff, #ffd700, #ff8c00);
+    border: 4px solid #fff;
+    box-shadow: 0 0 25px #ffd700, inset 0 0 10px rgba(0,0,0,0.3);
+    z-index: 5;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+.wheel-center-glow:active {
+    transform: scale(0.92);
+}
+.wheel-center-text {
+    font-size: 13px;
+    font-weight: 900;
+    color: #1a0a3a;
+    letter-spacing: 0.5px;
+}
+
+/* --- DAILY LOGIN 2-ROW GRID --- */
+.daily-rewards-grid-2row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    padding: 16px 14px 10px;
+}
+.daily-reward-card-premium {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    padding: 10px 4px;
+    text-align: center;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 85px;
+    box-sizing: border-box;
+    transition: all 0.25s ease;
+}
+.daily-reward-card-premium.day7 {
+    grid-column: span 2;
+    background: linear-gradient(135deg, rgba(255,215,0,0.18), rgba(255,140,0,0.1));
+    border: 2px solid rgba(255, 215, 0, 0.55);
+    box-shadow: 0 0 15px rgba(255,215,0,0.2);
+}
+.daily-reward-card-premium.claimed {
+    background: rgba(76, 175, 80, 0.18);
+    border: 1.5px solid #4caf50;
+}
+.daily-reward-card-premium.current {
+    background: rgba(255, 215, 0, 0.15);
+    border: 2px solid #ffd700;
+    box-shadow: 0 0 12px rgba(255,215,0,0.3);
+    animation: goldPulse 1.5s infinite alternate;
+}
+
+@keyframes goldPulse {
+    from { box-shadow: 0 0 5px rgba(255,215,0,0.2); }
+    to { box-shadow: 0 0 18px rgba(255,215,0,0.55); }
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+
