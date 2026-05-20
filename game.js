@@ -8,138 +8,238 @@ let canvas, ctx, scoreVal, currentBallEl, nextBallEl, goalText;
 const R = 18, rowHeight = 32, SPEED = 32;
 
 
-const COLORS = ['#ff4d4d', '#ffcc00', '#33cc33', '#3399ff', '#cc33ff', '#ff8c1a'];
+const COLORS = ['#ff4d4d', '#3399ff', '#33cc33', '#ffcc00', '#cc33ff', '#00f2fe'];
 
 // Maps generator color names → hex used by renderer
 const COLORS_MAP = {
     red:    '#ff4d4d',
-    yellow: '#ffcc00',
-    green:  '#33cc33',
     blue:   '#3399ff',
-    purple: '#cc33ff'
+    green:  '#33cc33',
+    yellow: '#ffcc00',
+    purple: '#cc33ff',
+    cyan:   '#00f2fe'
 };
-const GEN_COLORS = ['red', 'blue', 'green', 'yellow', 'purple'];
+const GEN_COLORS = ['red', 'blue', 'green', 'yellow', 'purple', 'cyan'];
 
-// ──────── SMART LEVEL GENERATOR ────────
-// ──────── SMART LEVEL GENERATOR ────────
+// 🧠 Difficulty Config
+function getDifficulty(level, failCount) {
+  let config = {
+    rows: 5,
+    cols: 11, // Standardize column count to make bubble sizes constant and small
+    colorCount: 3,
+    hardChance: 0,
+    gapChance: 0
+  };
+
+  // pehle 1-70 level aasan ho (Keep levels 1-70 strictly at the easy baseline config)
+  if (level <= 70) {
+    return config;
+  }
+
+  // Shift level so progressive difficulty progression starts organically from Level 71
+  const effectiveLevel = level - 50; // Level 71 becomes effectiveLevel 21, triggering the first bump
+
+  // 📈 Progressive Difficulty
+  if (effectiveLevel > 20) {
+    config.rows = 6;
+    config.colorCount = 4;
+  }
+
+  if (effectiveLevel > 50) {
+    config.rows = 7;
+    config.gapChance = 0.05;
+  }
+
+  if (effectiveLevel > 80) {
+    config.rows = 8;
+    config.hardChance = 0.08;
+  }
+
+  if (effectiveLevel > 160) {
+    config.rows = 9;
+    config.hardChance = 0.15;
+    config.gapChance = 0.1;
+  }
+
+  // 🧠 Adaptive Easy Mode
+  if (failCount >= 3) {
+    config.colorCount = Math.max(2, config.colorCount - 1);
+    config.hardChance = 0;
+    config.gapChance = 0;
+
+    console.log("Easy Mode Activated");
+  }
+
+  return config;
+}
+
+// 🔵 Normal Bubble
+function normalBubble(color, theme = 'normal') {
+  return {
+    type: "normal",
+    color,
+    hp: 1,
+    theme
+  };
+}
+
+// 🪨 Hard Bubble
+function hardBubble(color, theme = 'normal') {
+  let hp = 2; // ice, chain, spike
+  if (theme === 'fire') hp = 3;
+  else if (theme === 'void') hp = 4;
+  else if (theme === 'cosmic') hp = 5;
+  else if (theme === 'metal') hp = 6;
+  return {
+    type: "hard",
+    color,
+    hp,
+    theme
+  };
+}
+
+// Dynamically select appropriate visual themes for hard bubbles based on level milestone
+function pickTheme(level) {
+  let themes = [];
+  if (level >= 71) themes.push('ice');
+  if (level >= 110) themes.push('chain');
+  if (level >= 160) themes.push('stone');
+  if (level >= 220) themes.push('fire');
+  if (level >= 300) themes.push('void');
+  if (level >= 400) themes.push('cosmic');
+  if (level >= 500) themes.push('metal');
+  if (level >= 600) themes.push('spike');
+  if (themes.length === 0) return 'normal';
+  return themes[Math.floor(Math.random() * themes.length)];
+}
+
 function getLevelConfig(level) {
-    const cols = 11; // Standardize column count to make bubble sizes constant and small
-    
-    // Level 1-70: Easy matching (3 colors, 5 rows, no blocker features)
-    if (level <= 70) {
-        return {
-            start: 1, end: 70, colors: 3, rows: 5, cols: cols,
-            hardChance: 0.0, features: []
-        };
+  const config = getDifficulty(level, S.playerFails);
+  return {
+    start: level,
+    end: level,
+    colors: config.colorCount,
+    rows: config.rows,
+    cols: config.cols,
+    hardChance: config.hardChance,
+    gapChance: config.gapChance,
+    features: pickFeatures(level)
+  };
+}
+
+function pickFeatures(level) {
+  let features = [];
+  if (level >= 71) features.push('ice');
+  if (level >= 110) features.push('chain');
+  if (level >= 160) features.push('stone');
+  if (level >= 220) features.push('fire');
+  if (level >= 300) features.push('void');
+  if (level >= 400) features.push('cosmic');
+  if (level >= 500) features.push('metal');
+  if (level >= 600) features.push('spike');
+  return features;
+}
+
+// 🎯 Generate Level Grid
+function generateLevel(level, failCount = 0) {
+  const config = getDifficulty(level, failCount);
+
+  const activeColors = GEN_COLORS.slice(
+    0,
+    config.colorCount
+  );
+
+  const grid = [];
+
+  for (let row = 0; row < config.rows; row++) {
+    const currentRow = [];
+
+    for (let col = 0; col < config.cols; col++) {
+
+      // 🕳 Create small gaps (restricted to levels > 70 to keep 1-70 easy)
+      if (
+        level > 70 &&
+        Math.random() < config.gapChance
+      ) {
+        currentRow.push(null);
+        continue;
+      }
+
+      const color =
+        activeColors[
+          Math.floor(
+            Math.random() * activeColors.length
+          )
+        ];
+
+      // 🪨 Hard bubble (restricted to levels > 70 to keep 1-70 easy)
+      if (
+        level > 70 &&
+        Math.random() < config.hardChance
+      ) {
+        const theme = pickTheme(level);
+        currentRow.push(hardBubble(color, theme));
+      } else {
+        currentRow.push(normalBubble(color, 'normal'));
+      }
     }
-    
-    // Level 71+: Balanced and gradual difficulty curve
-    // Scale features based on level milestones
-    let features = [];
-    if (level >= 71) features.push('ice');        // Level 71+: Ice blockers introduced
-    if (level >= 110) features.push('chain');     // Level 110+: Chain blockers introduced
-    if (level >= 160) features.push('stone');     // Level 160+: Stone blockers introduced
-    if (level >= 220) features.push('fire');      // Level 220+: Fire blockers introduced
-    if (level >= 300) features.push('void');      // Level 300+: Void blockers introduced
-    if (level >= 400) features.push('cosmic');    // Level 400+: Cosmic blockers introduced
-    if (level >= 500) features.push('metal');     // Level 500+: Metal blockers introduced
-    if (level >= 600) features.push('spike');     // Level 600+: Spike blockers introduced
-    
-    // Gradual color scaling:
-    // Level 71-150: 4 colors
-    // Level 151-300: 5 colors
-    // Level 301+: up to 6 colors
-    let colors = 3;
-    if (level <= 150) {
-        colors = 4;
-    } else if (level <= 300) {
-        colors = 5;
-    } else {
-        colors = Math.min(6, 5 + Math.floor((level - 300) / 300)); // 6 colors at level 600+
+
+    grid.push(currentRow);
+  }
+
+  return grid;
+}
+
+// 🎯 SMART NEXT BALL SYSTEM
+// Gives useful colors more often, mapped dynamically to hex colors
+function getNextBallColor(aliveBubbles, failCount = 0) {
+  const colorMap = {};
+
+  // Count colors in grid
+  aliveBubbles.forEach(ball => {
+    if (ball && ball.alive && ball.color) {
+      colorMap[ball.color] =
+        (colorMap[ball.color] || 0) + 1;
     }
-    
-    // Gradual row scaling:
-    // Level 71-120: 6 rows
-    // Level 121-180: 7 rows
-    // Level 181-250: 8 rows
-    // Level 251-400: 9 rows
-    // Level 401+: 10 rows (gradually up to 11 at levels > 1400)
-    let rows = 5;
-    if (level <= 120) {
-        rows = 6;
-    } else if (level <= 180) {
-        rows = 7;
-    } else if (level <= 250) {
-        rows = 8;
-    } else if (level <= 400) {
-        rows = 9;
-    } else {
-        rows = Math.min(11, 10 + Math.floor((level - 400) / 1000));
+  });
+
+  const availableColors = Object.keys(colorMap);
+  if (availableColors.length === 0) {
+    return COLORS[0];
+  }
+
+  // 🧠 If player struggling or near win → helpful colors (highest frequency matching)
+  if (failCount >= 2 || availableColors.length <= 4) {
+    const sorted = availableColors.sort((a, b) => colorMap[b] - colorMap[a]);
+    return sorted[0];
+  }
+
+  // 🎲 Normal random
+  return availableColors[
+    Math.floor(
+      Math.random() * availableColors.length
+    )
+  ];
+}
+
+// 🎮 CHECK LEVEL WIN
+function checkWin(grid) {
+  for (let row of grid) {
+    for (let ball of row) {
+      if (ball !== null) {
+        return false;
+      }
     }
-    
-    // Blocker chance scaling:
-    // Base blocker chance starts at 3% at level 71, and adds 1% for every 80 levels, capping at 15%
-    let hardChance = Math.min(0.15, 0.03 + Math.floor((level - 71) / 80) * 0.01);
-    
-    return {
-        start: level, end: level, colors, rows, cols,
-        hardChance, features
-    };
+  }
+
+  return true;
 }
 
-function pickRandomTheme(availableThemes) {
-    return availableThemes[Math.floor(Math.random() * availableThemes.length)];
-}
+// 💀 CHECK LEVEL LOSE
+function checkLose(grid) {
+  const lastRow = grid[grid.length - 1];
 
-function createBubble(color, theme='normal')     { return { color, type: 'normal', hp: 1, theme }; }
-function createHardBubble(color, theme='normal') {
-    let hp = 2; // ice, chain
-    if (theme === 'fire') hp = 3;
-    else if (theme === 'void') hp = 4;
-    else if (theme === 'cosmic') hp = 5;
-    else if (theme === 'metal') hp = 6;
-    else if (theme === 'spike') hp = 2; // Spike breaks normally but hurts the shooter
-    return { color, type: 'hard', hp, theme }; 
-}
-
-// ──────── PATTERN SYSTEM ────────
-function getPattern(level){
-    return "full"; // User requested no spaces, solid lines of bubbles
-}
-
-function shouldPlaceBubble(pattern, row, col, rows, cols){
-    return true; // No pattern gaps
-}
-
-function generateLevel(level, playerFails = 0) {
-    let config = getLevelConfig(level);
-    let { rows, cols, colors, hardChance, features } = config;
-    
-    if (playerFails >= 3) { hardChance = 0; colors = Math.max(2, colors - 1); }
-    const selectedColors = GEN_COLORS.slice(0, colors);
-    const availableThemes = features;
-    
-    // Max 15% hard balls to avoid frustration
-    const hardRate = Math.min(hardChance, 0.15);
-    const pattern = getPattern(level);
-    const grid = [];
-    for (let row = 0; row < rows; row++) {
-        const currentRow = [];
-        for (let col = 0; col < cols; col++) {
-            if (!shouldPlaceBubble(pattern, row, col, rows, cols)) {
-                currentRow.push(null);
-                continue;
-            }
-            // User requested no random gaps
-            const color = selectedColors[Math.floor(Math.random() * selectedColors.length)];
-            const isHard = availableThemes.length > 0 && Math.random() < hardRate;
-            currentRow.push(isHard
-                ? createHardBubble(color, pickRandomTheme(availableThemes))
-                : createBubble(color, 'normal'));
-        }
-        grid.push(currentRow);
-    }
-    return grid;
+  return lastRow.some(ball => ball !== null);
 }
 
 
@@ -845,16 +945,19 @@ function getBestMatchingColor() {
 }
 
 function getSmartShooterColor() {
-    const alive = bubbles.filter(b => b.alive && b.theme === 'normal');
+    const alive = bubbles.filter(b => b.alive);
     if (alive.length === 0) return COLORS[0];
     
-    // Anti-frustration or Near Win
-    if (S.playerFails >= 3 || alive.length <= 8) {
-        return getBestMatchingColor();
+    // 🎯 Delegate to Advanced Smart Ball System
+    // Near Win (<=8 remaining) or player struggling → best matching color
+    if (S.playerFails >= 2 || alive.length <= 8) {
+        return getNextBallColor(alive, S.playerFails);
     }
 
-    const existingColors = [...new Set(alive.map(b => b.color))];
-    return existingColors[Math.floor(Math.random() * existingColors.length)];
+    // Normal: use smart color counting among normal bubbles
+    const normals = alive.filter(b => b.theme === 'normal');
+    if (normals.length === 0) return getNextBallColor(alive, S.playerFails);
+    return getNextBallColor(normals, S.playerFails);
 }
 
 function prepNext() {
