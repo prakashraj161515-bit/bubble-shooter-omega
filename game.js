@@ -6,6 +6,7 @@
 
 let canvas, ctx, scoreVal, currentBallEl, nextBallEl, goalText;
 const R = 18, rowHeight = 32, SPEED = 32;
+const CEILING_Y = 0;
 
 
 const COLORS = ['#ff4d4d', '#3399ff', '#33cc33', '#ffcc00', '#cc33ff', '#00f2fe'];
@@ -572,7 +573,7 @@ function startGame() {
         rowData.forEach((cell, col) => {
             if (!cell) return; // null = gap
             const x = startX + col * spacingX + (spacingX / 2);
-            const targetY = row * spacingY + (spacingX / 2) + 105; // 105px offset to clear top iOS HUD
+            const targetY = row * spacingY + (spacingX / 2) + CEILING_Y; // stuck to top wall
             bubbles.push({
                 x, targetY,
                 y: canvas.height + 100,
@@ -669,7 +670,7 @@ function snap() {
     let bestDist = Infinity;
     let bestCell = null;
 
-    const TOP_HUD_OFFSET = 105;
+    const TOP_HUD_OFFSET = CEILING_Y;
     const estRow = Math.round((projectile.y - clusterOffset - TOP_HUD_OFFSET - (spacingX / 2)) / spacingY);
     
     for (let r = Math.max(0, estRow - 2); r <= estRow + 2; r++) {
@@ -1176,7 +1177,7 @@ function updateClusterPosition() {
     const activeBubbles = bubbles.filter(b => b.alive && !b.falling);
     if (activeBubbles.length === 0) return;
     // Pin cluster to the top — never scroll down regardless of how few balls are left
-    const topPadding = 100; // pixels from canvas top
+    const topPadding = 0; // pixels from canvas top
     clusterOffset = topPadding;
 }
 
@@ -1227,7 +1228,7 @@ function animate() {
                 stepVx *= -1; // Reflect current step
             }
             
-            if (projectile.y < curR + 20 + clusterOffset + 105) hit = true; 
+            if (projectile.y < curR + clusterOffset + CEILING_Y) hit = true; 
             else {
                 for (let b of bubbles) {
                     if (b.alive && !b.falling && Math.hypot(b.x - projectile.x, (b.targetY + clusterOffset) - projectile.y) < curR * 1.8) {
@@ -1248,19 +1249,110 @@ function animate() {
         const pos = getShooterPos();
         const ang = Math.atan2(mouseY - pos.y, mouseX - pos.x);
         if (ang < 0) {
-            let dx = Math.cos(ang), dy = Math.sin(ang);
             let tx = pos.x, ty = pos.y;
-            ctx.beginPath(); ctx.moveTo(tx, ty);
-            const lineSteps = window.superAimActive ? 30 : 15;
-            for(let i=0; i<lineSteps; i++){
-                tx += dx*35; ty += dy*35;
-                if(tx<curR || tx>canvas.width-curR) { dx *= -1; tx += dx*35; }
-                ctx.lineTo(tx, ty);
+            let vx = Math.cos(ang) * SPEED;
+            let vy = Math.sin(ang) * SPEED;
+            let steps = 4;
+            let stepVx = vx / steps;
+            let stepVy = vy / steps;
+
+            let path = [{ x: tx, y: ty }];
+            let hit = false;
+            let maxSimSteps = 400; // safe limit for performance
+            
+            for (let step = 0; step < maxSimSteps; step++) {
+                tx += stepVx;
+                ty += stepVy;
+
+                if (tx < curR) {
+                    tx = curR;
+                    stepVx *= -1;
+                } else if (tx > canvas.width - curR) {
+                    tx = canvas.width - curR;
+                    stepVx *= -1;
+                }
+
+                // Check ceiling
+                if (ty < curR + clusterOffset + CEILING_Y) {
+                    hit = true;
+                    break;
+                }
+
+                // Check bubble collision
+                for (let b of bubbles) {
+                    if (b.alive && !b.falling && Math.hypot(b.x - tx, (b.targetY + clusterOffset) - ty) < curR * 1.8) {
+                        hit = true;
+                        break;
+                    }
+                }
+
+                if (hit) break;
+                
+                // Store path points periodically or on boundary change for rendering
+                if (step % 4 === 0) {
+                    path.push({ x: tx, y: ty });
+                }
+            }
+            path.push({ x: tx, y: ty });
+
+            // Draw guideline
+            ctx.beginPath();
+            ctx.moveTo(path[0].x, path[0].y);
+            for (let i = 1; i < path.length; i++) {
+                ctx.lineTo(path[i].x, path[i].y);
             }
             ctx.strokeStyle = window.superAimActive ? 'rgba(61,220,132,0.8)' : 'rgba(255,255,255,0.4)';
             ctx.lineWidth = window.superAimActive ? 4 : 2;
             ctx.setLineDash(window.superAimActive ? [10, 10] : [5, 10]);
             ctx.stroke(); ctx.setLineDash([]);
+
+            // Draw snap preview bubble at endpoint to show exactly where it will land!
+            let bestDist = Infinity;
+            let bestCell = null;
+            const numCols = window.numCols || 10;
+            const spacingX = canvas.width / numCols;
+            const spacingY = spacingX * 0.866;
+            const estRow = Math.round((ty - clusterOffset - CEILING_Y - (spacingX / 2)) / spacingY);
+            
+            for (let r = Math.max(0, estRow - 2); r <= estRow + 2; r++) {
+                const isOffset = r % 2 !== 0;
+                const rowWidth = isOffset ? numCols - 1 : numCols;
+                const startX = isOffset ? spacingX / 2 : 0;
+                
+                for (let c = 0; c < rowWidth; c++) {
+                    const nx = startX + c * spacingX + (spacingX / 2);
+                    const ny = r * spacingY + (spacingX / 2) + CEILING_Y;
+                    const absoluteNy = ny + clusterOffset;
+                    
+                    let occupied = false;
+                    for (let b of bubbles) {
+                        if (b.alive && !b.falling && Math.hypot(b.x - nx, b.targetY - ny) < curR * 0.8) {
+                            occupied = true; break;
+                        }
+                    }
+                    
+                    if (!occupied) {
+                        const dist = Math.hypot(tx - nx, ty - absoluteNy);
+                        if (dist < bestDist) {
+                            bestDist = dist;
+                            bestCell = { nx, ny: absoluteNy };
+                        }
+                    }
+                }
+            }
+
+            if (bestCell) {
+                // Draw a beautiful glowing preview of the snapped location
+                ctx.beginPath();
+                ctx.arc(bestCell.nx, bestCell.ny, curR, 0, Math.PI * 2);
+                ctx.fillStyle = activeColor;
+                ctx.globalAlpha = 0.25;
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+                ctx.strokeStyle = window.superAimActive ? 'rgba(61,220,132,0.8)' : 'rgba(255,255,255,0.5)';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            }
         }
     }
 
