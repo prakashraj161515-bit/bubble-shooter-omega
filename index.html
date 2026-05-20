@@ -32,6 +32,21 @@
       <div class="hud-item" style="background:rgba(255,179,0,0.1); color:#ff9500; padding:8px 15px; border-radius:20px; font-weight:800; font-size:13px;">🪙 <span id="map-coins">1250</span></div>
       <button class="hud-btn-p" style="width:40px; height:40px; border-radius:12px; background:rgba(0,0,0,0.05); border:none; display:flex; justify-content:center; align-items:center; font-size:18px;" onclick="showScreen('settingsScreen')">⚙️</button>
     </header>
+
+    <!-- ✅ Left Side Floating Buttons: Store + Daily Login (Placed on Level Map Page) -->
+    <div id="leftSideBtns" style="position:absolute; left:12px; top:135px; z-index:20; display:flex; flex-direction:column; gap:12px; align-items:center;">
+      <!-- Store Button -->
+      <button onclick="openStoreModal()" style="background:none; border:none; padding:0; cursor:pointer; filter:drop-shadow(0 4px 12px rgba(0,0,0,0.35)); transition:transform 0.15s; outline:none;">
+        <img src="Assets/store_icon.png" alt="Store" style="width:62px; height:62px; border-radius:15px; display:block;" />
+        <div style="color:#fff; font-size:10px; font-weight:900; text-align:center; text-shadow:0 2px 4px rgba(0,0,0,0.8); margin-top:2px; letter-spacing:0.5px;">STORE</div>
+      </button>
+      <!-- Daily Login Button -->
+      <button onclick="openDailyLoginModal()" style="background:none; border:none; padding:0; cursor:pointer; filter:drop-shadow(0 4px 12px rgba(0,0,0,0.35)); transition:transform 0.15s; outline:none;">
+        <img src="Assets/daily_login_icon.png" alt="Daily Login" style="width:62px; height:62px; border-radius:15px; display:block;" />
+        <div style="color:#fff; font-size:10px; font-weight:900; text-align:center; text-shadow:0 2px 4px rgba(0,0,0,0.8); margin-top:2px; letter-spacing:0.5px;">DAILY</div>
+      </button>
+    </div>
+
     <div class="map-scroller" id="mapScrollArea"><div id="levelPath" style="position:relative;"></div></div>
     
     <!-- Focus Current Level Button -->
@@ -72,19 +87,7 @@
 
     <canvas id="gameCanvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;"></canvas>
 
-    <!-- ✅ Left Side Floating Buttons: Store + Daily Login -->
-    <div id="leftSideBtns" style="position:absolute; left:8px; top:80px; z-index:20; display:flex; flex-direction:column; gap:8px; align-items:center;">
-      <!-- Store Button -->
-      <button onclick="openStoreModal()" style="background:none; border:none; padding:0; cursor:pointer; filter:drop-shadow(0 4px 12px rgba(0,0,0,0.3)); transition:transform 0.15s;">
-        <img src="Assets/store_icon.png" alt="Store" style="width:58px; height:58px; border-radius:14px; display:block;" />
-        <div style="color:#fff; font-size:9px; font-weight:800; text-align:center; text-shadow:0 1px 4px rgba(0,0,0,0.7); margin-top:2px; letter-spacing:0.5px;">STORE</div>
-      </button>
-      <!-- Daily Login Button -->
-      <button onclick="openDailyLoginModal()" style="background:none; border:none; padding:0; cursor:pointer; filter:drop-shadow(0 4px 12px rgba(0,0,0,0.3)); transition:transform 0.15s;">
-        <img src="Assets/daily_login_icon.png" alt="Daily Login" style="width:58px; height:58px; border-radius:14px; display:block;" />
-        <div style="color:#fff; font-size:9px; font-weight:800; text-align:center; text-shadow:0 1px 4px rgba(0,0,0,0.7); margin-top:2px; letter-spacing:0.5px;">DAILY</div>
-      </button>
-    </div>
+
 
     <!-- ===== STORE MODAL ===== -->
     <div id="storeModal" style="display:none; position:fixed; inset:0; z-index:999; background:rgba(0,0,0,0.7); backdrop-filter:blur(6px); justify-content:center; align-items:flex-end;">
