@@ -72,6 +72,96 @@
 
     <canvas id="gameCanvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;"></canvas>
 
+    <!-- ✅ Left Side Floating Buttons: Store + Daily Login -->
+    <div id="leftSideBtns" style="position:absolute; left:8px; top:80px; z-index:20; display:flex; flex-direction:column; gap:8px; align-items:center;">
+      <!-- Store Button -->
+      <button onclick="openStoreModal()" style="background:none; border:none; padding:0; cursor:pointer; filter:drop-shadow(0 4px 12px rgba(0,0,0,0.3)); transition:transform 0.15s;">
+        <img src="Assets/store_icon.png" alt="Store" style="width:58px; height:58px; border-radius:14px; display:block;" />
+        <div style="color:#fff; font-size:9px; font-weight:800; text-align:center; text-shadow:0 1px 4px rgba(0,0,0,0.7); margin-top:2px; letter-spacing:0.5px;">STORE</div>
+      </button>
+      <!-- Daily Login Button -->
+      <button onclick="openDailyLoginModal()" style="background:none; border:none; padding:0; cursor:pointer; filter:drop-shadow(0 4px 12px rgba(0,0,0,0.3)); transition:transform 0.15s;">
+        <img src="Assets/daily_login_icon.png" alt="Daily Login" style="width:58px; height:58px; border-radius:14px; display:block;" />
+        <div style="color:#fff; font-size:9px; font-weight:800; text-align:center; text-shadow:0 1px 4px rgba(0,0,0,0.7); margin-top:2px; letter-spacing:0.5px;">DAILY</div>
+      </button>
+    </div>
+
+    <!-- ===== STORE MODAL ===== -->
+    <div id="storeModal" style="display:none; position:fixed; inset:0; z-index:999; background:rgba(0,0,0,0.7); backdrop-filter:blur(6px); justify-content:center; align-items:flex-end;">
+      <div style="background:linear-gradient(160deg,#1a0a3a,#2d1060); border-radius:28px 28px 0 0; width:100%; max-width:420px; padding:0 0 30px; overflow:hidden; animation:slideUp 0.3s ease;">
+        <!-- Header -->
+        <div style="background:linear-gradient(90deg,#7b2ff7,#e040fb); padding:18px 20px 14px; display:flex; align-items:center; justify-content:space-between;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <img src="Assets/store_icon.png" style="width:42px; height:42px; border-radius:10px;" />
+            <span style="color:#fff; font-size:20px; font-weight:900; letter-spacing:0.5px;">STORE</span>
+          </div>
+          <button onclick="closeStoreModal()" style="background:rgba(255,255,255,0.2); border:none; color:#fff; width:34px; height:34px; border-radius:50%; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center;">✕</button>
+        </div>
+        <!-- Coin balance -->
+        <div style="text-align:center; padding:12px; background:rgba(255,255,255,0.05);">
+          <span style="color:#ffd700; font-size:15px; font-weight:800;">🪙 <span id="storeCoinsDisplay">0</span> Coins</span>
+        </div>
+        <!-- Items grid -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:16px;">
+          <!-- Bomb -->
+          <div style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,100,100,0.4); border-radius:18px; padding:14px; text-align:center; cursor:pointer;" onclick="buyItem('bomb',200)">
+            <div style="font-size:36px; margin-bottom:6px;">💣</div>
+            <div style="color:#fff; font-weight:800; font-size:13px;">Bomb</div>
+            <div style="color:#aaa; font-size:11px; margin:2px 0 8px;">Destroy nearby bubbles</div>
+            <div style="background:linear-gradient(90deg,#ff6b35,#f7931e); color:#fff; border-radius:20px; padding:6px 14px; font-weight:800; font-size:12px; display:inline-block;">🪙 200</div>
+          </div>
+          <!-- Aim -->
+          <div style="background:rgba(255,255,255,0.08); border:1px solid rgba(100,255,100,0.4); border-radius:18px; padding:14px; text-align:center; cursor:pointer;" onclick="buyItem('aim',150)">
+            <div style="font-size:36px; margin-bottom:6px;">🎯</div>
+            <div style="color:#fff; font-weight:800; font-size:13px;">Super Aim</div>
+            <div style="color:#aaa; font-size:11px; margin:2px 0 8px;">Extended aiming line</div>
+            <div style="background:linear-gradient(90deg,#11998e,#38ef7d); color:#fff; border-radius:20px; padding:6px 14px; font-weight:800; font-size:12px; display:inline-block;">🪙 150</div>
+          </div>
+          <!-- Fireball -->
+          <div style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,180,50,0.4); border-radius:18px; padding:14px; text-align:center; cursor:pointer;" onclick="buyItem('fireball',300)">
+            <div style="font-size:36px; margin-bottom:6px;">🔥</div>
+            <div style="color:#fff; font-weight:800; font-size:13px;">Fireball</div>
+            <div style="color:#aaa; font-size:11px; margin:2px 0 8px;">Clears entire column</div>
+            <div style="background:linear-gradient(90deg,#f7971e,#ffd200); color:#1a0a3a; border-radius:20px; padding:6px 14px; font-weight:800; font-size:12px; display:inline-block;">🪙 300</div>
+          </div>
+          <!-- Coin Pack -->
+          <div style="background:linear-gradient(135deg,rgba(255,215,0,0.15),rgba(255,140,0,0.1)); border:1px solid rgba(255,215,0,0.5); border-radius:18px; padding:14px; text-align:center; cursor:pointer;" onclick="buyCoins()">
+            <div style="font-size:36px; margin-bottom:6px;">🪙</div>
+            <div style="color:#ffd700; font-weight:900; font-size:13px;">+1000 Coins</div>
+            <div style="color:#aaa; font-size:11px; margin:2px 0 8px;">Watch an ad</div>
+            <div style="background:linear-gradient(90deg,#ffd700,#ff9500); color:#1a0a3a; border-radius:20px; padding:6px 14px; font-weight:800; font-size:12px; display:inline-block;">FREE 📺</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== DAILY LOGIN MODAL ===== -->
+    <div id="dailyLoginModal" style="display:none; position:fixed; inset:0; z-index:999; background:rgba(0,0,0,0.75); backdrop-filter:blur(8px); justify-content:center; align-items:center;">
+      <div style="background:linear-gradient(160deg,#1a0050,#2d0080); border-radius:24px; width:92%; max-width:400px; overflow:hidden; animation:popIn 0.3s ease;">
+        <!-- Header -->
+        <div style="background:linear-gradient(90deg,#5b00c8,#9c27b0); padding:14px 16px; display:flex; align-items:center; justify-content:space-between; position:relative;">
+          <div style="font-size:11px; background:rgba(255,255,255,0.15); border-radius:50%; width:26px; height:26px; display:flex; align-items:center; justify-content:center; color:#fff;">ℹ</div>
+          <div style="text-align:center;">
+            <div style="color:#ffd700; font-size:13px; font-weight:900; letter-spacing:1px;">⭐ 7 DAY LOGIN REWARDS ⭐</div>
+            <div style="color:rgba(255,255,255,0.7); font-size:10px; margin-top:2px;">Login everyday and get amazing rewards!</div>
+          </div>
+          <button onclick="closeDailyLoginModal()" style="background:rgba(255,100,100,0.8); border:none; color:#fff; width:26px; height:26px; border-radius:50%; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-weight:900;">✕</button>
+        </div>
+        <!-- Days grid -->
+        <div id="dailyGrid" style="display:grid; grid-template-columns:repeat(7,1fr); gap:4px; padding:12px 10px 8px;"></div>
+        <!-- Claim button -->
+        <div style="padding:10px 20px 18px; text-align:center;">
+          <button id="dailyClaimBtn" onclick="claimDailyReward()" style="background:linear-gradient(90deg,#4caf50,#8bc34a); color:#fff; border:none; border-radius:30px; padding:13px 50px; font-size:17px; font-weight:900; cursor:pointer; box-shadow:0 6px 20px rgba(76,175,80,0.5); letter-spacing:1px;">⭐ CLAIM ⭐</button>
+        </div>
+      </div>
+    </div>
+
+    <style>
+      @keyframes slideUp { from { transform:translateY(100%); } to { transform:translateY(0); } }
+      @keyframes popIn { from { transform:scale(0.8); opacity:0; } to { transform:scale(1); opacity:1; } }
+      #leftSideBtns button:active { transform: scale(0.9); }
+    </style>
+
     <footer class="hud-bottom-p">
       <div class="ammo-pill" id="ammo-val">55</div>
       

@@ -253,7 +253,8 @@ let S = {
     powerups: JSON.parse(localStorage.getItem('bs_powerups')) || { bomb: 3, aim: 3, fireball: 1 },
     playerFails: 0,          // Tracks consecutive fails for Adaptive Easy Mode
     objective: { count: 0, total: 6 },
-    settings: JSON.parse(localStorage.getItem('bs_settings')) || { sound: true, music: true }
+    settings: JSON.parse(localStorage.getItem('bs_settings')) || { sound: true, music: true },
+    dailyLogin: JSON.parse(localStorage.getItem('bs_daily_login')) || { lastClaimedDate: null, currentDay: 0, claimedDays: [] }
 };
 
 let bubbles = [], projectile = null, particles = [], floaters = [];
@@ -919,6 +920,8 @@ function updateUI() {
     if(mc) mc.innerText = S.coins.toLocaleString();
     const sc = document.getElementById('shop-coins');
     if(sc) sc.innerText = S.coins.toLocaleString();
+    const stc = document.getElementById('storeCoinsDisplay');
+    if(stc) stc.innerText = S.coins.toLocaleString();
     
     // Update powerup badges
     const bb = document.getElementById('badge-bomb');
@@ -1387,6 +1390,7 @@ function saveState() {
     localStorage.setItem('bs_coins', S.coins);
     localStorage.setItem('bs_powerups', JSON.stringify(S.powerups || {}));
     localStorage.setItem('bs_settings', JSON.stringify(S.settings || {}));
+    localStorage.setItem('bs_daily_login', JSON.stringify(S.dailyLogin || { lastClaimedDate: null, currentDay: 0, claimedDays: [] }));
 }
 function loadState() { 
     const l = localStorage.getItem('bs_level'); 
@@ -1406,6 +1410,10 @@ function loadState() {
     
     const st = localStorage.getItem('bs_settings');
     if(st) S.settings = JSON.parse(st);
+
+    const dl = localStorage.getItem('bs_daily_login');
+    if(dl) S.dailyLogin = JSON.parse(dl);
+    else S.dailyLogin = { lastClaimedDate: null, currentDay: 0, claimedDays: [] };
 }
 
 // ──────── SHOP & POWERUPS ────────
@@ -1480,5 +1488,194 @@ window.startLevelAnimation = function(level) {
         setTimeout(() => div.remove(), 1500);
     }
 }
+
+// ──────── STORE & DAILY LOGIN MODAL LOGIC ────────
+const dailyRewards = [
+    { day: 1, name: "500 Coins", icon: "🪙", value: 500, type: "coins" },
+    { day: 2, name: "100 Coins", icon: "💎", value: 100, type: "coins" },
+    { day: 3, name: "Super Aim", icon: "🎯", value: 1, type: "aim" },
+    { day: 4, name: "Bomb", icon: "💣", value: 1, type: "bomb" },
+    { day: 5, name: "1000 Coins", icon: "🪙", value: 1000, type: "coins" },
+    { day: 6, name: "2 Fireballs", icon: "⚡", value: 2, type: "fireball" },
+    { day: 7, name: "Mega Chest", icon: "🎁", value: { coins: 500, bomb: 1, aim: 1, fireball: 1 }, type: "chest" }
+];
+
+window.openStoreModal = function() {
+    const modal = document.getElementById('storeModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        updateUI();
+    }
+};
+
+window.closeStoreModal = function() {
+    const modal = document.getElementById('storeModal');
+    if (modal) modal.style.display = 'none';
+};
+
+window.buyCoins = function() {
+    S.coins += 1000;
+    saveState();
+    updateUI();
+    if(window.showPoints) {
+        showPoints(window.innerWidth/2, window.innerHeight/2, '+1000 Coins! 🪙');
+    } else {
+        alert("Awesome! You received 1000 coins! 🪙");
+    }
+};
+
+window.openDailyLoginModal = function() {
+    const modal = document.getElementById('dailyLoginModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        window.renderDailyGrid();
+    }
+};
+
+window.closeDailyLoginModal = function() {
+    const modal = document.getElementById('dailyLoginModal');
+    if (modal) modal.style.display = 'none';
+};
+
+window.renderDailyGrid = function() {
+    const grid = document.getElementById('dailyGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    
+    const todayStr = new Date().toDateString();
+    const canClaimToday = S.dailyLogin.lastClaimedDate !== todayStr;
+    const currentDay = S.dailyLogin.currentDay; // 0 to 6
+    
+    dailyRewards.forEach((reward, index) => {
+        const isClaimed = S.dailyLogin.claimedDays.includes(reward.day);
+        const isCurrent = (index === currentDay);
+        
+        let cardBg = 'rgba(255, 255, 255, 0.05)';
+        let cardBorder = '1px solid rgba(255, 255, 255, 0.1)';
+        let badgeHtml = '';
+        let footerText = `DAY ${reward.day}`;
+        let footerColor = '#aaa';
+        let iconOpacity = '1';
+        
+        if (isClaimed) {
+            cardBg = 'rgba(76, 175, 80, 0.15)';
+            cardBorder = '2px solid #4caf50';
+            badgeHtml = '<div style="position:absolute; top:2px; right:2px; background:#4caf50; color:#fff; border-radius:50%; width:14px; height:14px; font-size:9px; display:flex; align-items:center; justify-content:center; font-weight:bold;">✓</div>';
+            footerText = 'CLAIMED';
+            footerColor = '#4caf50';
+            iconOpacity = '0.6';
+        } else if (isCurrent) {
+            if (canClaimToday) {
+                cardBg = 'rgba(255, 215, 0, 0.15)';
+                cardBorder = '2px solid #ffd700';
+                footerText = 'CLAIM';
+                footerColor = '#ffd700';
+            } else {
+                cardBg = 'rgba(0, 122, 255, 0.1)';
+                cardBorder = '1px dashed #007aff';
+                footerText = 'TOMORROW';
+                footerColor = '#007aff';
+            }
+        } else if (index < currentDay) {
+            footerText = 'MISSED';
+            footerColor = '#ff3b30';
+        } else {
+            iconOpacity = '0.4';
+            footerText = `DAY ${reward.day}`;
+        }
+        
+        const card = document.createElement('div');
+        card.style.cssText = `
+            background: ${cardBg};
+            border: ${cardBorder};
+            border-radius: 12px;
+            padding: 8px 4px;
+            text-align: center;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 80px;
+        `;
+        
+        card.innerHTML = `
+            ${badgeHtml}
+            <div style="font-size: 10px; color: rgba(255,255,255,0.6); font-weight: 600;">Day ${reward.day}</div>
+            <div style="font-size: 26px; margin: 4px 0; opacity: ${iconOpacity}; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">${reward.icon}</div>
+            <div style="font-size: 8px; color: #fff; font-weight: 800;">${reward.name}</div>
+            <div style="font-size: 8px; color: ${footerColor}; font-weight: 900; margin-top: 4px; letter-spacing: 0.3px;">${footerText}</div>
+        `;
+        
+        grid.appendChild(card);
+    });
+    
+    const btn = document.getElementById('dailyClaimBtn');
+    if (btn) {
+        if (canClaimToday && currentDay < 7) {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.background = 'linear-gradient(90deg,#4caf50,#8bc34a)';
+            btn.style.boxShadow = '0 6px 20px rgba(76,175,80,0.5)';
+            btn.innerText = '⭐ CLAIM NOW ⭐';
+        } else if (currentDay >= 7) {
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+            btn.style.background = '#888';
+            btn.style.boxShadow = 'none';
+            btn.innerText = 'ALL CLAIMED';
+        } else {
+            btn.disabled = true;
+            btn.style.opacity = '0.7';
+            btn.style.background = 'linear-gradient(90deg,#555,#777)';
+            btn.style.boxShadow = 'none';
+            btn.innerText = 'TOMORROW';
+        }
+    }
+};
+
+window.claimDailyReward = function() {
+    const todayStr = new Date().toDateString();
+    if (S.dailyLogin.lastClaimedDate === todayStr) {
+        alert("You have already claimed today's reward! Come back tomorrow.");
+        return;
+    }
+    const currentDay = S.dailyLogin.currentDay;
+    if (currentDay >= 7) {
+        alert("All rewards claimed!");
+        return;
+    }
+    
+    const reward = dailyRewards[currentDay];
+    
+    if (reward.type === "coins") {
+        S.coins += reward.value;
+    } else if (reward.type === "aim") {
+        S.powerups.aim = (S.powerups.aim || 0) + reward.value;
+    } else if (reward.type === "bomb") {
+        S.powerups.bomb = (S.powerups.bomb || 0) + reward.value;
+    } else if (reward.type === "fireball") {
+        S.powerups.fireball = (S.powerups.fireball || 0) + reward.value;
+    } else if (reward.type === "chest") {
+        S.coins += reward.value.coins;
+        S.powerups.aim = (S.powerups.aim || 0) + reward.value.aim;
+        S.powerups.bomb = (S.powerups.bomb || 0) + reward.value.bomb;
+        S.powerups.fireball = (S.powerups.fireball || 0) + reward.value.fireball;
+    }
+    
+    S.dailyLogin.claimedDays.push(reward.day);
+    S.dailyLogin.currentDay += 1;
+    S.dailyLogin.lastClaimedDate = todayStr;
+    
+    saveState();
+    updateUI();
+    window.renderDailyGrid();
+    
+    if(window.showPoints) {
+        showPoints(window.innerWidth/2, window.innerHeight/2, `Claimed: ${reward.name}! 🎉`);
+    } else {
+        alert(`Congratulations! You claimed ${reward.name}! 🎉`);
+    }
+};
 
 document.addEventListener('DOMContentLoaded', init);
