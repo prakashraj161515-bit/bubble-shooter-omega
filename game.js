@@ -21,30 +21,69 @@ const COLORS_MAP = {
 const GEN_COLORS = ['red', 'blue', 'green', 'yellow', 'purple'];
 
 // ──────── SMART LEVEL GENERATOR ────────
-const MECHANIC_GROUPS = [
-  { start: 1, end: 80, colors: 3, rows: 5, cols: 8, hardChance: 0.0, features: [] },
-  { start: 81, end: 160, colors: 4, rows: 7, cols: 9, hardChance: 0.1, features: ['stone'] },
-  { start: 161, end: 240, colors: 4, rows: 8, cols: 10, hardChance: 0.15, features: ['stone', 'ice'] },
-  { start: 241, end: 320, colors: 5, rows: 9, cols: 11, hardChance: 0.2, features: ['stone', 'ice', 'chain'] },
-  { start: 321, end: 400, colors: 5, rows: 10, cols: 11, hardChance: 0.22, features: ['stone', 'ice', 'chain', 'fire'] },
-  { start: 401, end: 480, colors: 5, rows: 10, cols: 12, hardChance: 0.25, features: ['stone', 'ice', 'chain', 'fire', 'void'] },
-  { start: 481, end: 5000, colors: 5, rows: 11, cols: 12, hardChance: 0.25, features: ['stone', 'ice', 'chain', 'fire', 'void', 'cosmic'] }
-];
-
+// ──────── SMART LEVEL GENERATOR ────────
 function getLevelConfig(level) {
-    for (let group of MECHANIC_GROUPS) {
-        if (level >= group.start && level <= group.end) return group;
+    const cols = 11; // Standardize column count to make bubble sizes constant and small
+    
+    // Level 1-70: Easy matching (3 colors, 5 rows, no blocker features)
+    if (level <= 70) {
+        return {
+            start: 1, end: 70, colors: 3, rows: 5, cols: cols,
+            hardChance: 0.0, features: []
+        };
     }
-    // Beyond 480: dynamically scale every 80 levels up to 5000
-    const phase = Math.floor((level - 401) / 80);
-    const colors = Math.min(6, 5 + Math.floor(phase / 10)); // Caps at 6 colors
-    const hardChance = Math.min(0.35, 0.25 + (phase * 0.01)); // Increases up to 35% hard balls
-    const features = ['stone', 'ice', 'chain', 'fire', 'void', 'cosmic', 'metal', 'spike'];
-    const activeCount = Math.min(features.length, 5 + Math.floor(phase / 2));
+    
+    // Level 71+: Balanced and gradual difficulty curve
+    // Scale features based on level milestones
+    let features = [];
+    if (level >= 71) features.push('ice');        // Level 71+: Ice blockers introduced
+    if (level >= 110) features.push('chain');     // Level 110+: Chain blockers introduced
+    if (level >= 160) features.push('stone');     // Level 160+: Stone blockers introduced
+    if (level >= 220) features.push('fire');      // Level 220+: Fire blockers introduced
+    if (level >= 300) features.push('void');      // Level 300+: Void blockers introduced
+    if (level >= 400) features.push('cosmic');    // Level 400+: Cosmic blockers introduced
+    if (level >= 500) features.push('metal');     // Level 500+: Metal blockers introduced
+    if (level >= 600) features.push('spike');     // Level 600+: Spike blockers introduced
+    
+    // Gradual color scaling:
+    // Level 71-150: 4 colors
+    // Level 151-300: 5 colors
+    // Level 301+: up to 6 colors
+    let colors = 3;
+    if (level <= 150) {
+        colors = 4;
+    } else if (level <= 300) {
+        colors = 5;
+    } else {
+        colors = Math.min(6, 5 + Math.floor((level - 300) / 300)); // 6 colors at level 600+
+    }
+    
+    // Gradual row scaling:
+    // Level 71-120: 6 rows
+    // Level 121-180: 7 rows
+    // Level 181-250: 8 rows
+    // Level 251-400: 9 rows
+    // Level 401+: 10 rows (gradually up to 11 at levels > 1400)
+    let rows = 5;
+    if (level <= 120) {
+        rows = 6;
+    } else if (level <= 180) {
+        rows = 7;
+    } else if (level <= 250) {
+        rows = 8;
+    } else if (level <= 400) {
+        rows = 9;
+    } else {
+        rows = Math.min(11, 10 + Math.floor((level - 400) / 1000));
+    }
+    
+    // Blocker chance scaling:
+    // Base blocker chance starts at 3% at level 71, and adds 1% for every 80 levels, capping at 15%
+    let hardChance = Math.min(0.15, 0.03 + Math.floor((level - 71) / 80) * 0.01);
     
     return {
-        start: level, end: level, colors, rows: 11, cols: 12,
-        hardChance, features: features.slice(0, activeCount)
+        start: level, end: level, colors, rows, cols,
+        hardChance, features
     };
 }
 
@@ -207,52 +246,54 @@ function renderMap() {
     for (let i = 1; i <= totalLevels; i++) {
         const node = document.createElement('div');
         
-        // Determine difficulty type and classes
+        // Determine difficulty type and classes (Only apply hard badges to levels > 70)
         let difficultyClass = '';
         let fireBadgeHtml = '';
-        if (i % 60 === 0) {
-            difficultyClass = 'difficulty-super-hard';
-            fireBadgeHtml = `<div class="fire-badge super-hard-badge">
-                               <svg class="fire-svg" viewBox="0 0 24 24" style="width:34px; height:40px; display:block;">
-                                 <defs>
-                                   <linearGradient id="superGrad-${i}" x1="0%" y1="100%" x2="0%" y2="0%">
-                                     <stop offset="0%" stop-color="#4a0000" />
-                                     <stop offset="35%" stop-color="#cc0000" />
-                                     <stop offset="75%" stop-color="#ff3b30" />
-                                     <stop offset="100%" stop-color="#ff8800" />
-                                   </linearGradient>
-                                 </defs>
-                                 <path d="M17.55 11.2C17.3 10.3 16.5 9.5 15.7 9.1c-1.4-.7-2-.8-3.1-1.6c-.7-.5-1.2-1.3-1-2.2c0-.1 0-.2.1-.3c.1-.4.4-.7.8-.8c.1 0 .2 0 .2-.1c-.7-.3-1.4-.4-2.2-.4C8.4 3.7 6.7 5.6 6.7 8c0 .3 0 .7.1 1c.1.6.3 1.1.7 1.5c.1.1.2.2.2.3c.4.4.9.7 1.4.9c.5.2.9.5 1.2 1c.5.7.4 1.7-.2 2.3c-.4.4-.9.6-1.5.6c-.5 0-1-.2-1.4-.5c-.9-.7-1.2-1.9-.9-2.9c-.3.2-.6.5-.9.9c-.7.9-1.1 2.1-1.1 3.3c0 3.3 2.7 6 6 6s6-2.7 6-6c0-1.8-.7-3.4-1.9-4.5c.3-.1.6-.2.8-.4c.7-.6 1.2-1.4 1.3-2.3z" fill="url(#superGrad-${i})"/>
-                               </svg>
-                             </div>`;
-        } else if (i % 30 === 0) {
-            difficultyClass = 'difficulty-very-hard';
-            fireBadgeHtml = `<div class="fire-badge very-hard-badge">
-                               <svg class="fire-svg" viewBox="0 0 24 24" style="width:34px; height:40px; display:block;">
-                                 <defs>
-                                   <linearGradient id="veryHardGrad-${i}" x1="0%" y1="100%" x2="0%" y2="0%">
-                                     <stop offset="0%" stop-color="#cc0000" />
-                                     <stop offset="50%" stop-color="#ff8800" />
-                                     <stop offset="100%" stop-color="#ffcc00" />
-                                   </linearGradient>
-                                 </defs>
-                                 <path d="M17.55 11.2C17.3 10.3 16.5 9.5 15.7 9.1c-1.4-.7-2-.8-3.1-1.6c-.7-.5-1.2-1.3-1-2.2c0-.1 0-.2.1-.3c.1-.4.4-.7.8-.8c.1 0 .2 0 .2-.1c-.7-.3-1.4-.4-2.2-.4C8.4 3.7 6.7 5.6 6.7 8c0 .3 0 .7.1 1c.1.6.3 1.1.7 1.5c.1.1.2.2.2.3c.4.4.9.7 1.4.9c.5.2.9.5 1.2 1c.5.7.4 1.7-.2 2.3c-.4.4-.9.6-1.5.6c-.5 0-1-.2-1.4-.5c-.9-.7-1.2-1.9-.9-2.9c-.3.2-.6.5-.9.9c-.7.9-1.1 2.1-1.1 3.3c0 3.3 2.7 6 6 6s6-2.7 6-6c0-1.8-.7-3.4-1.9-4.5c.3-.1.6-.2.8-.4c.7-.6 1.2-1.4 1.3-2.3z" fill="url(#veryHardGrad-${i})"/>
-                               </svg>
-                             </div>`;
-        } else if (i % 15 === 0) {
-            difficultyClass = 'difficulty-hard';
-            fireBadgeHtml = `<div class="fire-badge hard-badge">
-                               <svg class="fire-svg" viewBox="0 0 24 24" style="width:34px; height:40px; display:block;">
-                                 <defs>
-                                   <linearGradient id="hardGrad-${i}" x1="0%" y1="100%" x2="0%" y2="0%">
-                                     <stop offset="0%" stop-color="#ff6600" />
-                                     <stop offset="60%" stop-color="#ffcc00" />
-                                     <stop offset="100%" stop-color="#ffe680" />
-                                   </linearGradient>
-                                 </defs>
-                                 <path d="M17.55 11.2C17.3 10.3 16.5 9.5 15.7 9.1c-1.4-.7-2-.8-3.1-1.6c-.7-.5-1.2-1.3-1-2.2c0-.1 0-.2.1-.3c.1-.4.4-.7.8-.8c.1 0 .2 0 .2-.1c-.7-.3-1.4-.4-2.2-.4C8.4 3.7 6.7 5.6 6.7 8c0 .3 0 .7.1 1c.1.6.3 1.1.7 1.5c.1.1.2.2.2.3c.4.4.9.7 1.4.9c.5.2.9.5 1.2 1c.5.7.4 1.7-.2 2.3c-.4.4-.9.6-1.5.6c-.5 0-1-.2-1.4-.5c-.9-.7-1.2-1.9-.9-2.9c-.3.2-.6.5-.9.9c-.7.9-1.1 2.1-1.1 3.3c0 3.3 2.7 6 6 6s6-2.7 6-6c0-1.8-.7-3.4-1.9-4.5c.3-.1.6-.2.8-.4c.7-.6 1.2-1.4 1.3-2.3z" fill="url(#hardGrad-${i})"/>
-                               </svg>
-                             </div>`;
+        if (i > 70) {
+            if (i % 60 === 0) {
+                difficultyClass = 'difficulty-super-hard';
+                fireBadgeHtml = `<div class="fire-badge super-hard-badge">
+                                   <svg class="fire-svg" viewBox="0 0 24 24" style="width:34px; height:40px; display:block;">
+                                     <defs>
+                                       <linearGradient id="superGrad-${i}" x1="0%" y1="100%" x2="0%" y2="0%">
+                                         <stop offset="0%" stop-color="#4a0000" />
+                                         <stop offset="35%" stop-color="#cc0000" />
+                                         <stop offset="75%" stop-color="#ff3b30" />
+                                         <stop offset="100%" stop-color="#ff8800" />
+                                       </linearGradient>
+                                     </defs>
+                                     <path d="M17.55 11.2C17.3 10.3 16.5 9.5 15.7 9.1c-1.4-.7-2-.8-3.1-1.6c-.7-.5-1.2-1.3-1-2.2c0-.1 0-.2.1-.3c.1-.4.4-.7.8-.8c.1 0 .2 0 .2-.1c-.7-.3-1.4-.4-2.2-.4C8.4 3.7 6.7 5.6 6.7 8c0 .3 0 .7.1 1c.1.6.3 1.1.7 1.5c.1.1.2.2.2.3c.4.4.9.7 1.4.9c.5.2.9.5 1.2 1c.5.7.4 1.7-.2 2.3c-.4.4-.9.6-1.5.6c-.5 0-1-.2-1.4-.5c-.9-.7-1.2-1.9-.9-2.9c-.3.2-.6.5-.9.9c-.7.9-1.1 2.1-1.1 3.3c0 3.3 2.7 6 6 6s6-2.7 6-6c0-1.8-.7-3.4-1.9-4.5c.3-.1.6-.2.8-.4c.7-.6 1.2-1.4 1.3-2.3z" fill="url(#superGrad-${i})"/>
+                                   </svg>
+                                 </div>`;
+            } else if (i % 30 === 0) {
+                difficultyClass = 'difficulty-very-hard';
+                fireBadgeHtml = `<div class="fire-badge very-hard-badge">
+                                   <svg class="fire-svg" viewBox="0 0 24 24" style="width:34px; height:40px; display:block;">
+                                     <defs>
+                                       <linearGradient id="veryHardGrad-${i}" x1="0%" y1="100%" x2="0%" y2="0%">
+                                         <stop offset="0%" stop-color="#cc0000" />
+                                         <stop offset="50%" stop-color="#ff8800" />
+                                         <stop offset="100%" stop-color="#ffcc00" />
+                                       </linearGradient>
+                                     </defs>
+                                     <path d="M17.55 11.2C17.3 10.3 16.5 9.5 15.7 9.1c-1.4-.7-2-.8-3.1-1.6c-.7-.5-1.2-1.3-1-2.2c0-.1 0-.2.1-.3c.1-.4.4-.7.8-.8c.1 0 .2 0 .2-.1c-.7-.3-1.4-.4-2.2-.4C8.4 3.7 6.7 5.6 6.7 8c0 .3 0 .7.1 1c.1.6.3 1.1.7 1.5c.1.1.2.2.2.3c.4.4.9.7 1.4.9c.5.2.9.5 1.2 1c.5.7.4 1.7-.2 2.3c-.4.4-.9.6-1.5.6c-.5 0-1-.2-1.4-.5c-.9-.7-1.2-1.9-.9-2.9c-.3.2-.6.5-.9.9c-.7.9-1.1 2.1-1.1 3.3c0 3.3 2.7 6 6 6s6-2.7 6-6c0-1.8-.7-3.4-1.9-4.5c.3-.1.6-.2.8-.4c.7-.6 1.2-1.4 1.3-2.3z" fill="url(#veryHardGrad-${i})"/>
+                                   </svg>
+                                 </div>`;
+            } else if (i % 15 === 0) {
+                difficultyClass = 'difficulty-hard';
+                fireBadgeHtml = `<div class="fire-badge hard-badge">
+                                   <svg class="fire-svg" viewBox="0 0 24 24" style="width:34px; height:40px; display:block;">
+                                     <defs>
+                                       <linearGradient id="hardGrad-${i}" x1="0%" y1="100%" x2="0%" y2="0%">
+                                         <stop offset="0%" stop-color="#ff6600" />
+                                         <stop offset="60%" stop-color="#ffcc00" />
+                                         <stop offset="100%" stop-color="#ffe680" />
+                                       </linearGradient>
+                                     </defs>
+                                     <path d="M17.55 11.2C17.3 10.3 16.5 9.5 15.7 9.1c-1.4-.7-2-.8-3.1-1.6c-.7-.5-1.2-1.3-1-2.2c0-.1 0-.2.1-.3c.1-.4.4-.7.8-.8c.1 0 .2 0 .2-.1c-.7-.3-1.4-.4-2.2-.4C8.4 3.7 6.7 5.6 6.7 8c0 .3 0 .7.1 1c.1.6.3 1.1.7 1.5c.1.1.2.2.2.3c.4.4.9.7 1.4.9c.5.2.9.5 1.2 1c.5.7.4 1.7-.2 2.3c-.4.4-.9.6-1.5.6c-.5 0-1-.2-1.4-.5c-.9-.7-1.2-1.9-.9-2.9c-.3.2-.6.5-.9.9c-.7.9-1.1 2.1-1.1 3.3c0 3.3 2.7 6 6 6s6-2.7 6-6c0-1.8-.7-3.4-1.9-4.5c.3-.1.6-.2.8-.4c.7-.6 1.2-1.4 1.3-2.3z" fill="url(#hardGrad-${i})"/>
+                                   </svg>
+                                 </div>`;
+            }
         }
         
         node.className = `node-premium ${difficultyClass}`;
@@ -381,23 +422,25 @@ function startGame() {
     const diff = getLevelConfig(S.currentLevel);
     let { rows, cols, colors, hardChance } = diff;
 
-    // Apply Hard / Very Hard / Super Hard gameplay difficulty scaling
-    if (S.currentLevel % 60 === 0) {
-        // Super Hard: +3 rows, +1 color (max 6), +15% hardChance
-        rows += 3;
-        colors = Math.min(6, colors + 1);
-        hardChance = Math.min(0.4, hardChance + 0.15);
-        console.log(`[Super Hard Level] Level: ${S.currentLevel} | Rows: ${rows} | Colors: ${colors} | HardChance: ${hardChance}`);
-    } else if (S.currentLevel % 30 === 0) {
-        // Very Hard: +2 rows, +10% hardChance
-        rows += 2;
-        hardChance = Math.min(0.35, hardChance + 0.1);
-        console.log(`[Very Hard Level] Level: ${S.currentLevel} | Rows: ${rows} | HardChance: ${hardChance}`);
-    } else if (S.currentLevel % 15 === 0) {
-        // Hard: +1 row, +5% hardChance
-        rows += 1;
-        hardChance = Math.min(0.3, hardChance + 0.05);
-        console.log(`[Hard Level] Level: ${S.currentLevel} | Rows: ${rows} | HardChance: ${hardChance}`);
+    // Apply Hard / Very Hard / Super Hard gameplay difficulty scaling (Only for levels > 70)
+    if (S.currentLevel > 70) {
+        if (S.currentLevel % 60 === 0) {
+            // Super Hard: +3 rows, +1 color (max 6), +15% hardChance
+            rows += 3;
+            colors = Math.min(6, colors + 1);
+            hardChance = Math.min(0.4, hardChance + 0.15);
+            console.log(`[Super Hard Level] Level: ${S.currentLevel} | Rows: ${rows} | Colors: ${colors} | HardChance: ${hardChance}`);
+        } else if (S.currentLevel % 30 === 0) {
+            // Very Hard: +2 rows, +10% hardChance
+            rows += 2;
+            hardChance = Math.min(0.35, hardChance + 0.1);
+            console.log(`[Very Hard Level] Level: ${S.currentLevel} | Rows: ${rows} | HardChance: ${hardChance}`);
+        } else if (S.currentLevel % 15 === 0) {
+            // Hard: +1 row, +5% hardChance
+            rows += 1;
+            hardChance = Math.min(0.3, hardChance + 0.05);
+            console.log(`[Hard Level] Level: ${S.currentLevel} | Rows: ${rows} | HardChance: ${hardChance}`);
+        }
     }
 
     // Adaptive Easy Mode: if player failed 3+ times, reduce difficulty
@@ -414,7 +457,9 @@ function startGame() {
     window.activeR = dynamicR;
     window.numCols = numCols;
 
-    S.ammo = 25; S.score = 0; S.objective.count = 0;
+    // Dynamically calculate moves based on the number of rows and columns to clear
+    S.ammo = Math.max(25, Math.round(rows * cols * 0.45));
+    S.score = 0; S.objective.count = 0;
     bubbles = [];
     const spacingY = spacingX * 0.866;
     introAnimFrame = 60;
@@ -748,14 +793,14 @@ function updateUI() {
     const curR = window.activeR || 20;
     if (currentBallEl) {
         currentBallEl.style.background = activeColor;
-        currentBallEl.style.width = (curR * 2.2) + 'px';
-        currentBallEl.style.height = (curR * 2.2) + 'px';
+        currentBallEl.style.width = (curR * 2) + 'px';
+        currentBallEl.style.height = (curR * 2) + 'px';
         currentBallEl.style.borderRadius = '50%';
     }
     if (nextBallEl) {
         nextBallEl.style.background = reserveColor;
-        nextBallEl.style.width = (curR * 1.6) + 'px';
-        nextBallEl.style.height = (curR * 1.6) + 'px';
+        nextBallEl.style.width = (curR * 2) + 'px';
+        nextBallEl.style.height = (curR * 2) + 'px';
         nextBallEl.style.borderRadius = '50%';
     }
     const mc = document.getElementById('map-coins');
@@ -1090,7 +1135,7 @@ function animate() {
             if (hit) break; // Stop moving exactly at the collision point
         }
         
-        drawBall(projectile.x, projectile.y, projectile.color, curR + 2);
+        drawBall(projectile.x, projectile.y, projectile.color, curR);
         if (hit) snap(); 
         if (projectile && projectile.y > canvas.height) projectile = null;
     }
