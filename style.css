@@ -571,13 +571,13 @@ button#toggleSoundBtn:not(.off)::after, button#toggleMusicBtn:not(.off)::after {
     align-items: center;
 }
 .missions-container.collapsed {
-    height: 110px;
+    height: 135px; /* card(90px) + padding(20px) + toggle btn(25px) */
 }
 .missions-container.expanded {
-    height: 335px;
+    height: 375px; /* 3 cards * 90px + gaps + toggle btn */
 }
 
-/* ✅ Left Side Floating Buttons styling and transition */
+/* ✅ Left Side Floating Buttons — fixed position, never slides */
 #leftSideBtns {
     position: absolute;
     left: 12px;
@@ -587,11 +587,6 @@ button#toggleSoundBtn:not(.off)::after, button#toggleMusicBtn:not(.off)::after {
     flex-direction: column;
     gap: 12px;
     align-items: center;
-    transition: top 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.missions-container.expanded ~ #leftSideBtns {
-    top: 425px;
 }
 
 .missions-track {

@@ -14,9 +14,9 @@
 
   <!-- MAP SCREEN (RESTORED FOREST) -->
   <div id="mapScreen" class="screen map-screen">
-    <header class="hud-top-premium" style="background:rgba(255,255,255,0.75); backdrop-filter:blur(20px); padding: 15px 20px; border-bottom:1px solid rgba(0,0,0,0.05); position:relative; z-index:30;">
-      <div class="hud-item" style="background:rgba(255,179,0,0.1); color:#ff9500; padding:8px 15px; border-radius:20px; font-weight:800; font-size:13px;">🪙 <span id="map-coins">1250</span></div>
-      <button class="hud-btn-p" style="width:40px; height:40px; border-radius:12px; background:rgba(0,0,0,0.05); border:none; display:flex; justify-content:center; align-items:center; font-size:18px;" onclick="showScreen('settingsScreen')">⚙️</button>
+    <header class="hud-top-premium" style="background:transparent; backdrop-filter:none; -webkit-backdrop-filter:none; padding: 15px 20px; border-bottom:none; position:absolute; top:0; left:0; right:0; z-index:30;">
+      <div class="hud-item" style="background:rgba(0,0,0,0.25); color:#fff; padding:8px 15px; border-radius:20px; font-weight:800; font-size:13px; backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);">🪙 <span id="map-coins">1250</span></div>
+      <button class="hud-btn-p" style="width:40px; height:40px; border-radius:12px; background:rgba(0,0,0,0.25); border:none; display:flex; justify-content:center; align-items:center; font-size:18px; backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);" onclick="showScreen('settingsScreen')">⚙️</button>
     </header>
 
     <!-- 🎯 3-LEVEL MISSIONS CONTAINER (EASY, MEDIUM, HARD) 🎯 -->
@@ -51,7 +51,7 @@
       </button>
     </div>
 
-    <div class="map-scroller" id="mapScrollArea"><div id="levelPath" style="position:relative;"></div></div>
+    <div class="map-scroller" id="mapScrollArea" style="position:absolute; top:0; left:0; right:0; bottom:0;"><div id="levelPath" style="position:relative;"></div></div>
     
     <!-- Focus Current Level Button -->
     <button id="focusCurrentBtn" class="focus-current-btn hidden" onclick="scrollToCurrentLevel()">
@@ -59,12 +59,6 @@
           <path d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"/>
       </svg>
     </button>
-    
-    <footer style="height:90px; background:#fff; display:flex; justify-content:space-around; align-items:center; border-top:1px solid #eee;">
-      <div style="text-align:center; color:#aaa; font-size:10px; font-weight:800;"><i>🏠</i><br>HOME</div>
-      <div style="text-align:center; color:#7b6cff; font-size:10px; font-weight:800;"><i>🗺️</i><br>MAP</div>
-      <div onclick="showScreen('shopScreen')" style="text-align:center; color:#aaa; font-size:10px; font-weight:800; cursor:pointer;"><i>🛒</i><br>SHOP</div>
-    </footer>
   </div>
 
   <!-- GAMEPLAY SCREEN (THE PHOTO CLONE) -->

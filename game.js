@@ -418,12 +418,15 @@ function renderMap() {
         
         if (i <= S.unlockedLevels) {
             node.classList.add('unlocked');
-            let stars = S.levelStars[i] || 0;
+            // Fix: use string key for reliable lookup (JSON parse produces string keys)
+            let stars = S.levelStars[i] || S.levelStars[String(i)] || 0;
             let starHtml = '';
             if (stars > 0) {
-                let starStr = "⭐".repeat(stars);
-                // Stars are 1.5x larger (font-size 21px) and overlap 40% above the level circle (top -8px)
-                starHtml = `<div style="position:absolute;top:-8px;width:100%;text-align:center;font-size:21px;line-height:21px;color:#ffcf3e;text-shadow:0 2px 5px rgba(0,0,0,0.5);z-index:4;pointer-events:none;">${starStr}</div>`;
+                let starsStr = '';
+                for (let s = 0; s < 3; s++) {
+                    starsStr += `<span style="color:${s < stars ? '#ffd700' : 'rgba(255,255,255,0.3)'}; font-size:9px; margin:0 0.5px; text-shadow:0 1px 3px rgba(0,0,0,0.7);">★</span>`;
+                }
+                starHtml = `<div style="position:absolute; bottom:-10px; left:50%; transform:translateX(-50%); display:flex; padding:1px 4px; background:rgba(0,0,0,0.55); border-radius:7px; border:0.5px solid rgba(255,255,255,0.15); z-index:4; pointer-events:none; white-space:nowrap;">${starsStr}</div>`;
             }
             node.innerHTML = `<span>${i}</span>
                               ${starHtml}
@@ -669,12 +672,21 @@ function shoot(e) {
     // Allow shooting in any upward direction
     if (ty > pos.y) return; 
     
+    let vx = Math.cos(ang) * SPEED;
+    let vy = Math.sin(ang) * SPEED;
+
+    // Fireball always goes straight up
+    if (activeColor === 'fireball') {
+        vx = 0;
+        vy = -SPEED * 1.2; // slightly faster
+    }
+
     projectile = { 
         x: pos.x, 
         y: pos.y, 
         color: activeColor, 
-        vx: Math.cos(ang) * SPEED, 
-        vy: Math.sin(ang) * SPEED 
+        vx: vx, 
+        vy: vy 
     };
     window.superAimActive = false; // Turn off super aim after shot
     prepNext(); 
@@ -723,23 +735,11 @@ function snap() {
     
     if (!bestCell) return;
     
-    // POWER-UP: Bomb & Fireball Destruction
+    // POWER-UP: Bomb Destruction
     if (projectile.color === 'bomb') {
         const boomX = bestCell.nx, boomY = bestCell.ny;
         bubbles.forEach(b => {
             if (b.alive && Math.hypot(b.x - boomX, b.targetY - boomY) <= spacingX * 2.5) {
-                b.alive = false;
-                createParticles(b.x, b.targetY, b.color);
-                S.score += 50;
-            }
-        });
-        if (window.screenShake) screenShake();
-        if(S.settings.sound) playSFX('pop');
-        projectile = null; checkEnd(); updateUI(); return;
-    } else if (projectile.color === 'fireball') {
-        const boomX = bestCell.nx;
-        bubbles.forEach(b => {
-            if (b.alive && Math.abs(b.x - boomX) <= spacingX * 1.5) {
                 b.alive = false;
                 createParticles(b.x, b.targetY, b.color);
                 S.score += 50;
@@ -885,7 +885,10 @@ function checkEnd() {
         if (S.ammo >= 15) newStars = 3;
         else if (S.ammo >= 7) newStars = 2;
         
-        S.levelStars[S.currentLevel] = Math.max(newStars, S.levelStars[S.currentLevel] || 0);
+        // Fix: save with both numeric and string key for compatibility
+        const curStars = S.levelStars[S.currentLevel] || S.levelStars[String(S.currentLevel)] || 0;
+        S.levelStars[S.currentLevel] = Math.max(newStars, curStars);
+        S.levelStars[String(S.currentLevel)] = S.levelStars[S.currentLevel]; // also store string key
         S.playerFails = 0;
         // 🏆 Medium Mission: track level wins
         if (S.missions && !S.missions.medium.claimed) {
@@ -1259,9 +1262,35 @@ function animate() {
             projectile.x += stepVx; 
             projectile.y += stepVy;
             
-            if (projectile.x < curR || projectile.x > canvas.width - curR) {
-                projectile.vx *= -1;
-                stepVx *= -1; // Reflect current step
+            // Clamp x and only reflect if moving toward that wall (direction-aware)
+            if (projectile.x < curR) {
+                projectile.x = curR;
+                if (projectile.vx < 0) { projectile.vx *= -1; stepVx *= -1; }
+            } else if (projectile.x > canvas.width - curR) {
+                projectile.x = canvas.width - curR;
+                if (projectile.vx > 0) { projectile.vx *= -1; stepVx *= -1; }
+            }
+            
+            // Fireball: pierce through bubbles — pop each one it touches, never snap
+            if (projectile.color === 'fireball') {
+                for (let b of bubbles) {
+                    if (b.alive && !b.falling && Math.hypot(b.x - projectile.x, (b.targetY + clusterOffset) - projectile.y) < curR * 1.9) {
+                        b.alive = false;
+                        createParticles(b.x, b.targetY + clusterOffset, b.color);
+                        S.score += 50;
+                        if (S.missions && !S.missions.easy.claimed)
+                            S.missions.easy.progress = Math.min(S.missions.easy.target, S.missions.easy.progress + 1);
+                        if (S.settings && S.settings.sound) playSFX('pop');
+                    }
+                }
+                // Fireball dies past top of canvas
+                if (projectile.y < -curR * 2) {
+                    // draw meteor tail before removing
+                    projectile = null;
+                    checkEnd(); updateUI();
+                    return;
+                }
+                continue; // skip snap check for fireball
             }
             
             if (projectile.y < curR + clusterOffset + (window.CEILING_Y || 0)) hit = true; 
@@ -1275,8 +1304,48 @@ function animate() {
             if (hit) break; // Stop moving exactly at the collision point
         }
         
-        drawBall(projectile.x, projectile.y, projectile.color, curR);
-        if (hit) snap(); 
+        // Draw fireball as meteor with glowing tail
+        if (projectile && projectile.color === 'fireball') {
+            const px = projectile.x, py = projectile.y;
+            // Draw tail particles (orange trail going downward)
+            const tailLen = 35;
+            const grad = ctx.createLinearGradient(px, py, px, py + tailLen);
+            grad.addColorStop(0, 'rgba(255,220,50,0.95)');
+            grad.addColorStop(0.3, 'rgba(255,100,0,0.7)');
+            grad.addColorStop(1, 'rgba(255,50,0,0)');
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(px - curR * 0.4, py);
+            ctx.quadraticCurveTo(px, py + tailLen, px + curR * 0.4, py);
+            ctx.fillStyle = grad;
+            ctx.fill();
+            // Left streak
+            ctx.beginPath();
+            ctx.moveTo(px - curR * 0.2, py + 5);
+            ctx.lineTo(px - curR * 0.5, py + tailLen * 0.7);
+            ctx.strokeStyle = 'rgba(255,150,0,0.5)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            // Right streak  
+            ctx.beginPath();
+            ctx.moveTo(px + curR * 0.2, py + 5);
+            ctx.lineTo(px + curR * 0.5, py + tailLen * 0.7);
+            ctx.stroke();
+            ctx.restore();
+            // Draw glowing meteor head
+            ctx.save();
+            ctx.shadowColor = '#ff6600'; ctx.shadowBlur = 20;
+            ctx.fillStyle = '#ff6600';
+            ctx.beginPath(); ctx.arc(px, py, curR, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#fff';
+            ctx.font = `${curR}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText('☄️', px, py + 2);
+            ctx.restore();
+        } else if (projectile) {
+            drawBall(projectile.x, projectile.y, projectile.color, curR);
+        }
+        if (hit) snap();
         if (projectile && projectile.y > canvas.height) projectile = null;
     }
     drawVFX();
