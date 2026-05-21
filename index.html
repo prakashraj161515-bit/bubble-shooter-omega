@@ -14,7 +14,7 @@
 
   <!-- MAP SCREEN (RESTORED FOREST) -->
   <div id="mapScreen" class="screen map-screen">
-    <header class="hud-top-premium" style="background:rgba(255,255,255,0.75); backdrop-filter:blur(20px); padding: 15px 20px; border-bottom:1px solid rgba(0,0,0,0.05); position:relative; z-index:15;">
+    <header class="hud-top-premium" style="background:rgba(255,255,255,0.75); backdrop-filter:blur(20px); padding: 15px 20px; border-bottom:1px solid rgba(0,0,0,0.05); position:relative; z-index:30;">
       <div class="hud-item" style="background:rgba(255,179,0,0.1); color:#ff9500; padding:8px 15px; border-radius:20px; font-weight:800; font-size:13px;">🪙 <span id="map-coins">1250</span></div>
       <button class="hud-btn-p" style="width:40px; height:40px; border-radius:12px; background:rgba(0,0,0,0.05); border:none; display:flex; justify-content:center; align-items:center; font-size:18px;" onclick="showScreen('settingsScreen')">⚙️</button>
     </header>
@@ -33,7 +33,7 @@
     </div>
 
     <!-- ✅ Left Side Floating Buttons: Store + Daily Login + Daily Bonus -->
-    <div id="leftSideBtns" style="position:absolute; left:12px; top:235px; z-index:20; display:flex; flex-direction:column; gap:12px; align-items:center;">
+    <div id="leftSideBtns">
       <!-- Store Button -->
       <button onclick="showScreen('shopScreen')" style="background:none; border:none; padding:0; cursor:pointer; filter:drop-shadow(0 4px 12px rgba(0,0,0,0.35)); transition:transform 0.15s; outline:none;">
         <img src="Assets/store_icon.png" alt="Store" style="width:62px; height:62px; border-radius:15px; display:block;" />
